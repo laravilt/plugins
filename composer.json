@@ -1,0 +1,56 @@
+{
+    "name": "laravilt/plugins",
+    "description": "Complete plugin system with generator, management, and FilamentPHP compatibility for Laravilt",
+    "type": "library",
+    "keywords": [
+        "laravilt",
+        "laravel",
+        "plugins"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Laravilt Team",
+            "email": "hello@laravilt.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "illuminate/console": "^11.0|^12.0",
+        "illuminate/filesystem": "^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "laravel/pint": "^1.13",
+        "phpstan/phpstan": "^1.10",
+        "nunomaduro/larastan": "^2.0"
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage",
+        "format": "vendor/bin/pint",
+        "analyse": "vendor/bin/phpstan analyse"
+    },
+    "autoload": {
+        "psr-4": {
+            "Laravilt\\Plugins\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Laravilt\\Plugins\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Laravilt\\Plugins\\PluginsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

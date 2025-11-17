@@ -1,0 +1,7 @@
+providers:
+  - Laravilt\Plugins\PluginsServiceProvider
+
+workbench:
+  start: '/'
+  install: true
+  welcome: false
