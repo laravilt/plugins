@@ -10,15 +10,16 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Laravilt Team",
-            "email": "hello@laravilt.com"
+            "name": "Fady Mondy",
+            "email": "info@3x1.io"
         }
     ],
     "require": {
         "php": "^8.2",
         "illuminate/support": "^11.0|^12.0",
         "illuminate/console": "^11.0|^12.0",
-        "illuminate/filesystem": "^11.0|^12.0"
+        "illuminate/filesystem": "^11.0|^12.0",
+        "spatie/laravel-package-tools": "^1.14"
     },
     "require-dev": {
         "orchestra/testbench": "^9.0",
@@ -48,9 +49,17 @@
         "laravel": {
             "providers": [
                 "Laravilt\\Plugins\\PluginsServiceProvider"
-            ]
+            ],
+            "aliases": {
+                "LaraviltPlugins": "Laravilt\\Plugins\\Facades\\LaraviltPlugins"
+            }
         }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
 }

@@ -3,7 +3,6 @@
 namespace Laravilt\Plugins;
 
 use Illuminate\Support\ServiceProvider;
-use Laravilt\Plugins\Commands\MakePluginCommand;
 use Laravilt\Plugins\Contracts\PluginManager as PluginManagerContract;
 use Laravilt\Plugins\Support\PluginManager;
 
@@ -15,8 +14,8 @@ class PluginsServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/plugins.php',
-            'laravilt.plugins'
+            __DIR__.'/../config/laravilt-plugins.php',
+            'laravilt-plugins'
         );
 
         $this->app->singleton(PluginManagerContract::class, function ($app) {
@@ -33,11 +32,16 @@ class PluginsServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                MakePluginCommand::class,
+                Commands\MakePluginCommand::class,
+                Commands\MakePluginModelCommand::class,
+                Commands\MakePluginMigrationCommand::class,
+                Commands\MakePluginResourceCommand::class,
+                Commands\MakePluginWidgetCommand::class,
+                Commands\MakePluginPageCommand::class,
             ]);
 
             $this->publishes([
-                __DIR__ . '/../config/plugins.php' => config_path('laravilt/plugins.php'),
+                __DIR__.'/../config/laravilt-plugins.php' => config_path('laravilt-plugins.php'),
             ], 'laravilt-plugins-config');
         }
 

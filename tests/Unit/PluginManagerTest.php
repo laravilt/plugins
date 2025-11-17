@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Collection;
-use Laravilt\Plugins\Contracts\Plugin;
 use Laravilt\Plugins\Contracts\PluginManager as PluginManagerContract;
 use Laravilt\Plugins\Support\PluginManager;
 

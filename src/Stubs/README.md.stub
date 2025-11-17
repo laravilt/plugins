@@ -1,0 +1,65 @@
+# {{ name }} Plugin for Laravilt
+
+{{ description }}
+
+## Installation
+
+You can install the plugin via composer:
+
+```bash
+composer require {{ vendor }}/{{ package }}
+```
+
+## Usage
+
+Register the plugin in your Panel provider:
+
+```php
+use {{ namespace }}\{{ class }};
+
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->plugins([
+            {{ class }}::make(),
+        ]);
+}
+```
+
+## Configuration
+
+Publish the config file:
+
+```bash
+php artisan vendor:publish --tag="{{ config }}-config"
+```
+
+## Assets
+
+Publish the plugin assets:
+
+```bash
+php artisan vendor:publish --tag="{{ assets_tag }}"
+```
+
+## Testing
+
+```bash
+composer test
+```
+
+## Code Style
+
+```bash
+composer format
+```
+
+## Static Analysis
+
+```bash
+composer analyse
+```
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.

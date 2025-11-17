@@ -86,7 +86,7 @@ class PluginDiscovery
 
         $interfaces = class_implements($provider);
 
-        return in_array(Plugin::class, $interfaces ?? []);
+        return is_array($interfaces) && in_array(Plugin::class, $interfaces);
     }
 
     /**

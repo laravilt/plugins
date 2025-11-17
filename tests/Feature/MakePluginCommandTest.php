@@ -18,11 +18,11 @@ it('can generate a plugin with default options', function () {
         ->assertSuccessful();
 
     expect($pluginPath)->toBeDirectory();
-    expect($pluginPath . '/composer.json')->toBeFile();
-    expect($pluginPath . '/src/TestPluginPluginServiceProvider.php')->toBeFile();
-    expect($pluginPath . '/.github/workflows/tests.yml')->toBeFile();
-    expect($pluginPath . '/phpunit.xml')->toBeFile();
-    expect($pluginPath . '/pint.json')->toBeFile();
+    expect($pluginPath.'/composer.json')->toBeFile();
+    expect($pluginPath.'/src/TestPluginPlugin.php')->toBeFile();
+    expect($pluginPath.'/.github/workflows/tests.yml')->toBeFile();
+    expect($pluginPath.'/phpunit.xml')->toBeFile();
+    expect($pluginPath.'/pint.json')->toBeFile();
 
     // Clean up
     File::deleteDirectory($pluginPath);
@@ -42,9 +42,9 @@ it('creates config file with laravilt prefix', function () {
         '--no-interaction' => true,
     ]);
 
-    expect($pluginPath . '/config/laravilt-test-plugin.php')->toBeFile();
+    expect($pluginPath.'/config/laravilt-test-plugin.php')->toBeFile();
 
-    $config = file_get_contents($pluginPath . '/config/laravilt-test-plugin.php');
+    $config = file_get_contents($pluginPath.'/config/laravilt-test-plugin.php');
     expect($config)->toContain('LARAVILT_TEST_PLUGIN_ENABLED');
 
     // Clean up
@@ -66,8 +66,8 @@ it('can skip components generation', function () {
         '--no-interaction' => true,
     ]);
 
-    expect($pluginPath . '/src/Components')->toBeDirectory();
-    expect($pluginPath . '/src/Components/CustomInput.php')->not->toBeFile();
+    expect($pluginPath.'/src/Components')->toBeDirectory();
+    expect($pluginPath.'/src/Components/CustomInput.php')->not->toBeFile();
 
     // Clean up
     File::deleteDirectory($pluginPath);

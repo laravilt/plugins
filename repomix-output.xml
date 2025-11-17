@@ -1,0 +1,4364 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: **/*.log, tmp/, .js, .html, .blade.php, .css, public/, vendor/, node_modules, venv/, logs/, electorn-sentinerl/
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  ISSUE_TEMPLATE/
+    bug.yml
+    config.yml
+  workflows/
+    dependabot-auto-merge.yml
+    fix-php-code-styling.yml
+    tests.yml
+  CONTRIBUTING.md
+  dependabot.yml
+  FUNDING.yml
+  SECURITY.md
+config/
+  laravilt-plugins.php
+docs/
+  index.md
+src/
+  Commands/
+    Concerns/
+      HandlesFiles.php
+      ManagesStubs.php
+      RunsCommands.php
+    MakePluginCommand.php
+    MakePluginMigrationCommand.php
+    MakePluginModelCommand.php
+    MakePluginPageCommand.php
+    MakePluginResourceCommand.php
+    MakePluginWidgetCommand.php
+  Concerns/
+    HasAssets.php
+    HasCommands.php
+    HasComponents.php
+    HasMigrations.php
+    HasTranslations.php
+    HasViews.php
+  Contracts/
+    Plugin.php
+    PluginManager.php
+  Facades/
+    LaraviltPlugins.php
+  Services/
+    Generation/
+      AssetFilesGenerator.php
+      CoreFilesGenerator.php
+      DocumentationGenerator.php
+      GitHubFilesGenerator.php
+      StubProcessor.php
+      TestingFilesGenerator.php
+    PluginGenerator.php
+  Stubs/
+    composer.json.stub
+    config.stub
+    migration.stub
+    model.stub
+    package.json.stub
+    page.stub
+    plugin.stub
+    README.md.stub
+    resource.stub
+    widget.stub
+  Support/
+    PluginDiscovery.php
+    PluginManager.php
+    PluginManifest.php
+  Testing/
+    PluginTestCase.php
+  BasePlugin.php
+  PluginProvider.php
+  PluginsServiceProvider.php
+tests/
+  Feature/
+    MakePluginCommandTest.php
+  Unit/
+    PluginManagerTest.php
+  Pest.php
+  TestCase.php
+.gitignore
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+composer.json
+LICENSE.md
+phpstan.neon
+phpunit.xml
+pint.json
+README.md
+SECURITY.md
+testbench.yaml
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="config/laravilt-plugins.php">
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Plugin Discovery
+    |--------------------------------------------------------------------------
+    |
+    | Enable or disable automatic plugin discovery. When enabled, Laravilt
+    | will automatically discover and register plugins from installed packages.
+    |
+    */
+    'discovery' => [
+        'enabled' => env('LARAVILT_PLUGINS_DISCOVERY_ENABLED', true),
+        'cache' => env('LARAVILT_PLUGINS_CACHE_ENABLED', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Plugin Paths
+    |--------------------------------------------------------------------------
+    |
+    | Define custom paths where Laravilt should look for plugins.
+    |
+    */
+    'paths' => [
+        base_path('packages'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Plugin Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Default configuration for generated plugins.
+    |
+    */
+    'defaults' => [
+        'vendor' => env('LARAVILT_PLUGINS_DEFAULT_VENDOR', 'laravilt'),
+        'author' => env('LARAVILT_PLUGINS_DEFAULT_AUTHOR', 'Fady Mondy'),
+        'email' => env('LARAVILT_PLUGINS_DEFAULT_EMAIL', 'info@3x1.io'),
+        'license' => env('LARAVILT_PLUGINS_DEFAULT_LICENSE', 'MIT'),
+    ],
+];
+</file>
+
+<file path="src/Commands/Concerns/HandlesFiles.php">
+<?php
+
+namespace Laravilt\Plugins\Commands\Concerns;
+
+use Illuminate\Support\Facades\File;
+
+trait HandlesFiles
+{
+    /**
+     * Handle file copy operation with overwrite option.
+     */
+    public function handleFile(string $from, string $to, string $type = 'file'): void
+    {
+        $checkIfFileEx = $this->checkFile($to);
+
+        if ($checkIfFileEx) {
+            $this->deleteFile($to, $type);
+            $this->copyFile($from, $to, $type);
+        } else {
+            $this->copyFile($from, $to, $type);
+        }
+    }
+
+    /**
+     * Check if file or directory exists.
+     */
+    public function checkFile(string $path): bool
+    {
+        return File::exists($path);
+    }
+
+    /**
+     * Copy file or directory.
+     */
+    public function copyFile(string $from, string $to, string $type = 'file'): bool
+    {
+        // Ensure the destination directory exists
+        $destinationDir = ($type === 'folder') ? $to : dirname($to);
+
+        if (! File::exists($destinationDir)) {
+            File::makeDirectory($destinationDir, 0755, true);
+        }
+
+        if ($type === 'folder') {
+            $copy = File::copyDirectory($from, $to);
+        } else {
+            $copy = File::copy($from, $to);
+        }
+
+        return $copy;
+    }
+
+    /**
+     * Delete file or directory.
+     */
+    public function deleteFile(string $path, string $type = 'file'): bool
+    {
+        if ($type === 'folder') {
+            $delete = File::deleteDirectory($path);
+        } else {
+            $delete = File::delete($path);
+        }
+
+        return $delete;
+    }
+
+    /**
+     * Ensure directory exists.
+     */
+    public function ensureDirectoryExists(string $path): void
+    {
+        if (! File::exists($path)) {
+            File::makeDirectory($path, 0755, true);
+        }
+    }
+
+    /**
+     * Move file or directory.
+     */
+    public function moveFile(string $from, string $to): bool
+    {
+        return File::move($from, $to);
+    }
+
+    /**
+     * Create a directory with proper permissions.
+     */
+    public function createDirectory(string $path, int $mode = 0755, bool $recursive = true): bool
+    {
+        if (File::exists($path)) {
+            return true;
+        }
+
+        return File::makeDirectory($path, $mode, $recursive);
+    }
+}
+</file>
+
+<file path="src/Commands/Concerns/ManagesStubs.php">
+<?php
+
+namespace Laravilt\Plugins\Commands\Concerns;
+
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+
+trait ManagesStubs
+{
+    /**
+     * Get stub content.
+     */
+    protected function getStub(string $name): string
+    {
+        $stubPath = __DIR__.'/../../Stubs/'.$name.'.stub';
+
+        if (! file_exists($stubPath)) {
+            throw new \RuntimeException("Stub file not found: {$stubPath}");
+        }
+
+        return file_get_contents($stubPath);
+    }
+
+    /**
+     * Replace placeholders in stub content.
+     */
+    protected function replaceInStub(string $stub, array $replacements): string
+    {
+        foreach ($replacements as $key => $value) {
+            $stub = str_replace("{{ {$key} }}", $value, $stub);
+        }
+
+        return $stub;
+    }
+
+    /**
+     * Generate file from stub.
+     */
+    protected function generateFromStub(string $stubName, string $outputPath, array $replacements): void
+    {
+        $stub = $this->getStub($stubName);
+        $content = $this->replaceInStub($stub, $replacements);
+
+        $this->files->ensureDirectoryExists(dirname($outputPath));
+        $this->files->put($outputPath, $content);
+    }
+
+    /**
+     * Generate file from stub with more options.
+     *
+     * @param  string  $from  Stub file path
+     * @param  string  $to  Output file path
+     * @param  array  $replacements  Key-value pairs for replacements
+     * @param  array  $directory  Directories to create
+     * @param  bool  $append  Whether to append instead of overwrite
+     */
+    protected function generateStubs(string $from, string $to, array $replacements, array $directory = [], bool $append = false): void
+    {
+        if (File::exists($from)) {
+            $stubValue = File::get($from);
+
+            $convertStubToText = Str::of($stubValue);
+
+            foreach ($replacements as $key => $replacement) {
+                $convertStubToText = $convertStubToText->replace('{{ '.$key.' }}', $replacement);
+            }
+
+            foreach ($directory as $dir) {
+                if (! File::exists($dir)) {
+                    File::makeDirectory($dir, 0755, true);
+                }
+            }
+
+            if (File::exists($to) && ! $append) {
+                File::delete($to);
+            }
+
+            if ($append) {
+                $content = File::get($to);
+                if (! str_contains($content, $convertStubToText)) {
+                    File::append($to, $convertStubToText);
+                }
+            } else {
+                File::put($to, $convertStubToText);
+            }
+        }
+    }
+}
+</file>
+
+<file path="src/Commands/Concerns/RunsCommands.php">
+<?php
+
+namespace Laravilt\Plugins\Commands\Concerns;
+
+use Symfony\Component\Process\PhpExecutableFinder;
+use Symfony\Component\Process\Process;
+
+trait RunsCommands
+{
+    /**
+     * Get the path to the appropriate PHP binary.
+     */
+    protected function phpBinary(): string
+    {
+        return (new PhpExecutableFinder)->find(false) ?: 'php';
+    }
+
+    /**
+     * Run a PHP command.
+     */
+    public function phpCommand(array $commands, ?bool $useOutput = false): void
+    {
+        (new Process(array_merge([$this->phpBinary()], $commands), base_path(), ['COMPOSER_MEMORY_LIMIT' => '-1']))
+            ->setTimeout(null)
+            ->run(function ($type, $output) use ($useOutput) {
+                if ($useOutput) {
+                    $this->output->write($output);
+                }
+            });
+    }
+
+    /**
+     * Run a Yarn command.
+     */
+    public function yarnCommand(array $commands, ?bool $withOutput = false): void
+    {
+        (new Process(array_merge(['yarn'], $commands), base_path(), ['COMPOSER_MEMORY_LIMIT' => '-1']))
+            ->setTimeout(null)
+            ->run(function ($type, $output) use ($withOutput) {
+                if ($withOutput) {
+                    $this->output->write($output);
+                }
+            });
+    }
+
+    /**
+     * Run an npm command.
+     */
+    public function npmCommand(array $commands, ?bool $withOutput = false): void
+    {
+        (new Process(array_merge(['npm'], $commands), base_path(), ['COMPOSER_MEMORY_LIMIT' => '-1']))
+            ->setTimeout(null)
+            ->run(function ($type, $output) use ($withOutput) {
+                if ($withOutput) {
+                    $this->output->write($output);
+                }
+            });
+    }
+
+    /**
+     * Run an artisan command.
+     */
+    public function artisanCommand(array $command, ?bool $withOutput = false): void
+    {
+        $this->phpCommand(array_merge(['artisan'], $command), $withOutput);
+    }
+
+    /**
+     * Installs the given Composer Packages into the application.
+     */
+    protected function requireComposerPackages(mixed $packages, ?bool $withOutput = false): void
+    {
+        $command = array_merge(
+            ['composer', 'require'],
+            is_array($packages) ? $packages : func_get_args()
+        );
+
+        (new Process($command, base_path(), ['COMPOSER_MEMORY_LIMIT' => '-1']))
+            ->setTimeout(null)
+            ->run(function ($type, $output) use ($withOutput) {
+                if ($withOutput) {
+                    $this->output->write($output);
+                }
+            });
+    }
+
+    /**
+     * Install the given Composer Packages as "dev" dependencies.
+     */
+    protected function requireComposerDevPackages(mixed $packages, ?bool $withOutput = false): void
+    {
+        $command = array_merge(
+            ['composer', 'require', '--dev'],
+            is_array($packages) ? $packages : func_get_args()
+        );
+
+        (new Process($command, base_path(), ['COMPOSER_MEMORY_LIMIT' => '-1']))
+            ->setTimeout(null)
+            ->run(function ($type, $output) use ($withOutput) {
+                if ($withOutput) {
+                    $this->output->write($output);
+                }
+            });
+    }
+
+    /**
+     * Run composer install in a specific directory.
+     */
+    protected function composerInstall(string $directory, ?bool $withOutput = false): void
+    {
+        (new Process(['composer', 'install'], $directory, ['COMPOSER_MEMORY_LIMIT' => '-1']))
+            ->setTimeout(null)
+            ->run(function ($type, $output) use ($withOutput) {
+                if ($withOutput) {
+                    $this->output->write($output);
+                }
+            });
+    }
+
+    /**
+     * Run npm install in a specific directory.
+     */
+    protected function npmInstall(string $directory, ?bool $withOutput = false): void
+    {
+        (new Process(['npm', 'install'], $directory))
+            ->setTimeout(null)
+            ->run(function ($type, $output) use ($withOutput) {
+                if ($withOutput) {
+                    $this->output->write($output);
+                }
+            });
+    }
+
+    /**
+     * Run npm build in a specific directory.
+     */
+    protected function npmBuild(string $directory, ?bool $withOutput = false): void
+    {
+        (new Process(['npm', 'run', 'build'], $directory))
+            ->setTimeout(null)
+            ->run(function ($type, $output) use ($withOutput) {
+                if ($withOutput) {
+                    $this->output->write($output);
+                }
+            });
+    }
+}
+</file>
+
+<file path="src/Commands/MakePluginMigrationCommand.php">
+<?php
+
+namespace Laravilt\Plugins\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Str;
+use Laravilt\Plugins\Commands\Concerns\ManagesStubs;
+
+class MakePluginMigrationCommand extends Command
+{
+    use ManagesStubs;
+
+    protected $signature = 'laravilt:plugin-migration
+                            {name : The name of the migration}
+                            {--plugin= : The plugin directory}
+                            {--table= : The table name}';
+
+    protected $description = 'Create a new migration for a Laravilt plugin';
+
+    protected Filesystem $files;
+
+    public function handle(): int
+    {
+        $this->files = app(Filesystem::class);
+
+        $name = $this->argument('name');
+        $pluginPath = $this->option('plugin') ?: getcwd();
+        $tableName = $this->option('table') ?: Str::snake(Str::plural($name));
+
+        if (! $this->files->exists($pluginPath.'/database/migrations')) {
+            $this->files->makeDirectory($pluginPath.'/database/migrations', 0755, true);
+        }
+
+        $timestamp = date('Y_m_d_His');
+        $migrationName = $timestamp.'_'.$name.'.php';
+
+        $this->generateFromStub('migration', $pluginPath."/database/migrations/{$migrationName}", [
+            'table' => $tableName,
+        ]);
+
+        $this->info("Migration {$migrationName} created successfully!");
+
+        return self::SUCCESS;
+    }
+}
+</file>
+
+<file path="src/Commands/MakePluginModelCommand.php">
+<?php
+
+namespace Laravilt\Plugins\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Str;
+use Laravilt\Plugins\Commands\Concerns\ManagesStubs;
+
+class MakePluginModelCommand extends Command
+{
+    use ManagesStubs;
+
+    protected $signature = 'laravilt:plugin-model
+                            {name : The name of the model}
+                            {--plugin= : The plugin directory}
+                            {--migration : Create a migration file}';
+
+    protected $description = 'Create a new model for a Laravilt plugin';
+
+    protected Filesystem $files;
+
+    public function handle(): int
+    {
+        $this->files = app(Filesystem::class);
+
+        $name = $this->argument('name');
+        $pluginPath = $this->option('plugin') ?: getcwd();
+
+        if (! $this->files->exists($pluginPath.'/src')) {
+            $this->error('Invalid plugin directory.');
+
+            return self::FAILURE;
+        }
+
+        $studlyName = Str::studly($name);
+        $namespace = $this->getNamespace($pluginPath);
+
+        // Generate Model
+        $this->generateFromStub('model', $pluginPath."/src/Models/{$studlyName}.php", [
+            'namespace' => $namespace.'\\Models',
+            'class' => $studlyName,
+        ]);
+
+        $this->info("Model {$studlyName} created successfully!");
+
+        // Generate migration if requested
+        if ($this->option('migration')) {
+            $this->call('laravilt:plugin-migration', [
+                'name' => 'create_'.Str::snake(Str::pluralStudly($name)).'_table',
+                '--plugin' => $pluginPath,
+                '--table' => Str::snake(Str::pluralStudly($name)),
+            ]);
+        }
+
+        return self::SUCCESS;
+    }
+
+    protected function getNamespace(string $pluginPath): string
+    {
+        $composer = json_decode($this->files->get($pluginPath.'/composer.json'), true);
+        $autoload = $composer['autoload']['psr-4'] ?? [];
+
+        return rtrim(array_key_first($autoload), '\\');
+    }
+}
+</file>
+
+<file path="src/Commands/MakePluginPageCommand.php">
+<?php
+
+namespace Laravilt\Plugins\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Str;
+use Laravilt\Plugins\Commands\Concerns\ManagesStubs;
+
+class MakePluginPageCommand extends Command
+{
+    use ManagesStubs;
+
+    protected $signature = 'laravilt:plugin-page
+                            {name : The name of the page}
+                            {--plugin= : The plugin directory}';
+
+    protected $description = 'Create a new page for a Laravilt plugin';
+
+    protected Filesystem $files;
+
+    public function handle(): int
+    {
+        $this->files = app(Filesystem::class);
+
+        $name = $this->argument('name');
+        $pluginPath = $this->option('plugin') ?: getcwd();
+
+        if (! $this->files->exists($pluginPath.'/src')) {
+            $this->error('Invalid plugin directory.');
+
+            return self::FAILURE;
+        }
+
+        $studlyName = Str::studly($name);
+        $kebabName = Str::kebab($name);
+        $namespace = $this->getNamespace($pluginPath);
+        $pluginId = $this->getPluginId($pluginPath);
+
+        // Generate Page
+        $this->generateFromStub('page', $pluginPath."/src/Pages/{$studlyName}.php", [
+            'namespace' => $namespace,
+            'class' => $studlyName,
+            'view' => $pluginId.'::pages.'.$kebabName,
+        ]);
+
+        // Generate Page View
+        $viewPath = $pluginPath."/resources/views/pages/{$kebabName}.blade.php";
+        $this->files->ensureDirectoryExists(dirname($viewPath));
+        $this->files->put($viewPath, "<x-filament-panels::page>\n    <!-- Page content here -->\n</x-filament-panels::page>\n");
+
+        $this->info("Page {$studlyName} created successfully!");
+
+        return self::SUCCESS;
+    }
+
+    protected function getNamespace(string $pluginPath): string
+    {
+        $composer = json_decode($this->files->get($pluginPath.'/composer.json'), true);
+        $autoload = $composer['autoload']['psr-4'] ?? [];
+
+        return rtrim(array_key_first($autoload), '\\');
+    }
+
+    protected function getPluginId(string $pluginPath): string
+    {
+        $composer = json_decode($this->files->get($pluginPath.'/composer.json'), true);
+        $packageName = $composer['name'] ?? '';
+
+        return Str::afterLast($packageName, '/');
+    }
+}
+</file>
+
+<file path="src/Commands/MakePluginResourceCommand.php">
+<?php
+
+namespace Laravilt\Plugins\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Str;
+use Laravilt\Plugins\Commands\Concerns\ManagesStubs;
+
+class MakePluginResourceCommand extends Command
+{
+    use ManagesStubs;
+
+    protected $signature = 'laravilt:plugin-resource
+                            {name : The name of the resource}
+                            {--plugin= : The plugin directory}
+                            {--model= : The model name}';
+
+    protected $description = 'Create a new Filament resource for a Laravilt plugin';
+
+    protected Filesystem $files;
+
+    public function handle(): int
+    {
+        $this->files = app(Filesystem::class);
+
+        $name = $this->argument('name');
+        $pluginPath = $this->option('plugin') ?: getcwd();
+        $modelName = $this->option('model') ?: $name;
+
+        if (! $this->files->exists($pluginPath.'/src')) {
+            $this->error('Invalid plugin directory. Please run this command from a plugin directory or specify --plugin option.');
+
+            return self::FAILURE;
+        }
+
+        $studlyName = Str::studly($name);
+        $namespace = $this->getNamespace($pluginPath);
+
+        // Generate Resource
+        $this->generateFromStub('resource', $pluginPath."/src/Resources/{$studlyName}Resource.php", [
+            'namespace' => $namespace,
+            'class' => $studlyName,
+            'model' => Str::studly($modelName),
+            'model_namespace' => $namespace.'\\Models',
+        ]);
+
+        // Generate Resource Pages
+        $this->generateResourcePages($pluginPath, $studlyName, $namespace);
+
+        $this->info("Resource {$studlyName}Resource created successfully!");
+
+        return self::SUCCESS;
+    }
+
+    protected function getNamespace(string $pluginPath): string
+    {
+        $composer = json_decode($this->files->get($pluginPath.'/composer.json'), true);
+        $autoload = $composer['autoload']['psr-4'] ?? [];
+
+        return rtrim(array_key_first($autoload), '\\');
+    }
+
+    protected function generateResourcePages(string $pluginPath, string $studlyName, string $namespace): void
+    {
+        $pages = ['List', 'Create', 'Edit'];
+        $pagesDir = $pluginPath."/src/Resources/{$studlyName}Resource/Pages";
+
+        $this->files->ensureDirectoryExists($pagesDir);
+
+        foreach ($pages as $page) {
+            $pageClass = $page.$studlyName;
+            $action = strtolower($page);
+
+            $content = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$studlyName}Resource\\Pages;
+
+use {$namespace}\\Resources\\{$studlyName}Resource;
+use Filament\\Resources\\Pages\\{$page}Record;
+
+class {$pageClass} extends {$page}Record
+{
+    protected static string \$resource = {$studlyName}Resource::class;
+}
+PHP;
+
+            $this->files->put($pagesDir."/{$pageClass}.php", $content);
+        }
+    }
+}
+</file>
+
+<file path="src/Commands/MakePluginWidgetCommand.php">
+<?php
+
+namespace Laravilt\Plugins\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Str;
+use Laravilt\Plugins\Commands\Concerns\ManagesStubs;
+
+class MakePluginWidgetCommand extends Command
+{
+    use ManagesStubs;
+
+    protected $signature = 'laravilt:plugin-widget
+                            {name : The name of the widget}
+                            {--plugin= : The plugin directory}';
+
+    protected $description = 'Create a new widget for a Laravilt plugin';
+
+    protected Filesystem $files;
+
+    public function handle(): int
+    {
+        $this->files = app(Filesystem::class);
+
+        $name = $this->argument('name');
+        $pluginPath = $this->option('plugin') ?: getcwd();
+
+        if (! $this->files->exists($pluginPath.'/src')) {
+            $this->error('Invalid plugin directory.');
+
+            return self::FAILURE;
+        }
+
+        $studlyName = Str::studly($name);
+        $kebabName = Str::kebab($name);
+        $namespace = $this->getNamespace($pluginPath);
+        $pluginId = $this->getPluginId($pluginPath);
+
+        // Generate Widget
+        $this->generateFromStub('widget', $pluginPath."/src/Widgets/{$studlyName}Widget.php", [
+            'namespace' => $namespace,
+            'class' => $studlyName.'Widget',
+            'view' => $pluginId.'::widgets.'.$kebabName,
+        ]);
+
+        // Generate Widget View
+        $viewPath = $pluginPath."/resources/views/widgets/{$kebabName}.blade.php";
+        $this->files->ensureDirectoryExists(dirname($viewPath));
+        $this->files->put($viewPath, "<div>\n    <!-- Widget content here -->\n</div>\n");
+
+        $this->info("Widget {$studlyName}Widget created successfully!");
+
+        return self::SUCCESS;
+    }
+
+    protected function getNamespace(string $pluginPath): string
+    {
+        $composer = json_decode($this->files->get($pluginPath.'/composer.json'), true);
+        $autoload = $composer['autoload']['psr-4'] ?? [];
+
+        return rtrim(array_key_first($autoload), '\\');
+    }
+
+    protected function getPluginId(string $pluginPath): string
+    {
+        $composer = json_decode($this->files->get($pluginPath.'/composer.json'), true);
+        $packageName = $composer['name'] ?? '';
+
+        return Str::afterLast($packageName, '/');
+    }
+}
+</file>
+
+<file path="src/Concerns/HasAssets.php">
+<?php
+
+namespace Laravilt\Plugins\Concerns;
+
+trait HasAssets
+{
+    protected array $assets = [];
+
+    protected string $assetsPath = 'dist';
+
+    public function assets(array $assets): static
+    {
+        $this->assets = $assets;
+
+        return $this;
+    }
+
+    public function assetsPath(string $path): static
+    {
+        $this->assetsPath = $path;
+
+        return $this;
+    }
+
+    public function getAssets(): array
+    {
+        return $this->assets;
+    }
+
+    public function getAssetsPath(): string
+    {
+        return $this->assetsPath;
+    }
+
+    public function publishAssets(): void
+    {
+        $pluginId = $this->getId();
+
+        $this->publishes([
+            __DIR__."/../../{$this->assetsPath}" => public_path("vendor/{$pluginId}"),
+        ], "{$pluginId}-assets");
+    }
+}
+</file>
+
+<file path="src/Concerns/HasCommands.php">
+<?php
+
+namespace Laravilt\Plugins\Concerns;
+
+trait HasCommands
+{
+    protected array $pluginCommands = [];
+
+    public function pluginCommands(array $commands): static
+    {
+        $this->pluginCommands = $commands;
+
+        return $this;
+    }
+
+    public function getPluginCommands(): array
+    {
+        return $this->pluginCommands;
+    }
+
+    public function registerPluginCommands(): void
+    {
+        if (empty($this->pluginCommands)) {
+            return;
+        }
+
+        $this->commands($this->pluginCommands);
+    }
+}
+</file>
+
+<file path="src/Concerns/HasComponents.php">
+<?php
+
+namespace Laravilt\Plugins\Concerns;
+
+use Illuminate\Support\Str;
+
+trait HasComponents
+{
+    protected array $components = [];
+
+    public function components(array $components): static
+    {
+        $this->components = $components;
+
+        return $this;
+    }
+
+    public function getComponents(): array
+    {
+        return $this->components;
+    }
+
+    public function registerComponents(): void
+    {
+        foreach ($this->components as $component) {
+            $alias = Str::kebab(class_basename($component));
+
+            $this->app->singleton("laravilt.component.{$alias}", $component);
+        }
+    }
+}
+</file>
+
+<file path="src/Concerns/HasMigrations.php">
+<?php
+
+namespace Laravilt\Plugins\Concerns;
+
+trait HasMigrations
+{
+    protected array $migrations = [];
+
+    public function migrations(array $migrations): static
+    {
+        $this->migrations = $migrations;
+
+        return $this;
+    }
+
+    public function getMigrations(): array
+    {
+        return $this->migrations;
+    }
+
+    public function loadMigrations(): void
+    {
+        if (empty($this->migrations)) {
+            return;
+        }
+
+        $this->loadMigrationsFrom(
+            __DIR__.'/../../database/migrations'
+        );
+    }
+}
+</file>
+
+<file path="src/Concerns/HasTranslations.php">
+<?php
+
+namespace Laravilt\Plugins\Concerns;
+
+trait HasTranslations
+{
+    protected array $translationNamespaces = [];
+
+    public function translations(array $namespaces): static
+    {
+        $this->translationNamespaces = $namespaces;
+
+        return $this;
+    }
+
+    public function getTranslationNamespaces(): array
+    {
+        return $this->translationNamespaces;
+    }
+
+    public function loadTranslations(): void
+    {
+        $pluginId = $this->getId();
+
+        $this->loadTranslationsFrom(
+            __DIR__.'/../../resources/lang',
+            $pluginId
+        );
+    }
+}
+</file>
+
+<file path="src/Concerns/HasViews.php">
+<?php
+
+namespace Laravilt\Plugins\Concerns;
+
+trait HasViews
+{
+    protected string $viewNamespace = '';
+
+    public function viewNamespace(string $namespace): static
+    {
+        $this->viewNamespace = $namespace;
+
+        return $this;
+    }
+
+    public function getViewNamespace(): string
+    {
+        return $this->viewNamespace ?: $this->getId();
+    }
+
+    public function loadViews(): void
+    {
+        $this->loadViewsFrom(
+            __DIR__.'/../../resources/views',
+            $this->getViewNamespace()
+        );
+    }
+
+    public function publishViews(): void
+    {
+        $namespace = $this->getViewNamespace();
+
+        $this->publishes([
+            __DIR__.'/../../resources/views' => resource_path("views/vendor/{$namespace}"),
+        ], "{$namespace}-views");
+    }
+}
+</file>
+
+<file path="src/Facades/LaraviltPlugins.php">
+<?php
+
+namespace Laravilt\Plugins\Facades;
+
+use Illuminate\Support\Facades\Facade;
+use Laravilt\Plugins\Contracts\PluginManager;
+
+/**
+ * LaraviltPlugins Facade for Plugin Management
+ *
+ * Usage:
+ * - LaraviltPlugins::plugin() - Get plugin manager
+ * - LaraviltPlugins::plugin('plugin-id') - Get specific plugin
+ *
+ * @method static void register(\Laravilt\Plugins\Contracts\Plugin $plugin)
+ * @method static void boot(string $id)
+ * @method static void bootAll()
+ * @method static \Laravilt\Plugins\Contracts\Plugin get(string $id)
+ * @method static bool has(string $id)
+ * @method static \Illuminate\Support\Collection all()
+ * @method static \Illuminate\Support\Collection enabled()
+ * @method static void discover()
+ * @method static \Laravilt\Plugins\Support\PluginManifest getManifest()
+ *
+ * @see \Laravilt\Plugins\Support\PluginManager
+ */
+class LaraviltPlugins extends Facade
+{
+    /**
+     * Get the registered name of the component.
+     */
+    protected static function getFacadeAccessor(): string
+    {
+        return PluginManager::class;
+    }
+
+    /**
+     * Get plugin manager instance or specific plugin.
+     *
+     * @param  string|null  $id  Plugin ID
+     */
+    public static function plugin(?string $id = null): mixed
+    {
+        $manager = static::getFacadeRoot();
+
+        if ($id === null) {
+            return $manager;
+        }
+
+        return $manager->get($id);
+    }
+}
+</file>
+
+<file path="src/Services/Generation/AssetFilesGenerator.php">
+<?php
+
+namespace Laravilt\Plugins\Services\Generation;
+
+/**
+ * Generates frontend asset files and build configuration.
+ *
+ * Creates Vite, PostCSS, Tailwind, and npm configuration for
+ * plugin asset compilation and management.
+ */
+class AssetFilesGenerator
+{
+    public function __construct(protected StubProcessor $processor) {}
+
+    /**
+     * Generate package.json for npm dependencies.
+     */
+    public function generatePackageJson(array $config): void
+    {
+        $this->processor->generateFile(
+            $config['base_path'].'/package.json',
+            'package.json',
+            [
+                'package' => $config['kebab_name'],
+            ]
+        );
+    }
+
+    /**
+     * Generate vite.config.js for Vite build tool.
+     *
+     * Configures Vite with Laravel plugin for asset compilation.
+     */
+    public function generateViteConfig(array $config): void
+    {
+        $content = <<<'JS'
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: ['resources/css/app.css', 'resources/js/app.js'],
+            buildDirectory: 'dist',
+        }),
+    ],
+});
+JS;
+        $this->processor->files->put($config['base_path'].'/vite.config.js', $content);
+    }
+
+    /**
+     * Generate postcss.config.js for PostCSS processing.
+     *
+     * Configures PostCSS with Tailwind CSS and Autoprefixer plugins.
+     */
+    public function generatePostCssConfig(string $basePath): void
+    {
+        $content = "export default {\n    plugins: {\n        tailwindcss: {},\n        autoprefixer: {},\n    },\n};\n";
+        $this->processor->files->put($basePath.'/postcss.config.js', $content);
+    }
+
+    /**
+     * Generate tailwind.config.js for Tailwind CSS.
+     *
+     * Configures Tailwind CSS content paths for plugin templates.
+     */
+    public function generateTailwindConfig(string $basePath): void
+    {
+        $content = "export default {\n    content: ['./resources/**/*.blade.php', './resources/**/*.js'],\n    theme: { extend: {} },\n    plugins: [],\n};\n";
+        $this->processor->files->put($basePath.'/tailwind.config.js', $content);
+    }
+
+    /**
+     * Generate sample CSS file.
+     */
+    public function generateCssFile(string $basePath): void
+    {
+        $content = "/* Plugin styles */\n";
+        $this->processor->files->put($basePath.'/resources/css/app.css', $content);
+    }
+
+    /**
+     * Generate sample JavaScript file.
+     */
+    public function generateJsFile(string $basePath, string $kebabName): void
+    {
+        $content = "// Plugin JavaScript\nconsole.log('Plugin loaded: {$kebabName}');\n";
+        $this->processor->files->put($basePath.'/resources/js/app.js', $content);
+    }
+}
+</file>
+
+<file path="src/Services/Generation/CoreFilesGenerator.php">
+<?php
+
+namespace Laravilt\Plugins\Services\Generation;
+
+/**
+ * Generates core plugin files including plugin class, composer.json, and config.
+ *
+ * This generator creates the essential files needed for a Laravilt plugin
+ * to function properly within the Laravel/Filament ecosystem.
+ */
+class CoreFilesGenerator
+{
+    public function __construct(public StubProcessor $processor) {}
+
+    /**
+     * Generate the main plugin class file.
+     *
+     * Creates the plugin service provider that extends PluginProvider and
+     * implements the Plugin interface for Filament compatibility.
+     */
+    public function generatePluginClass(array $config): void
+    {
+        $this->processor->generateFile(
+            $config['base_path'].'/src/'.$config['studly_name'].'Plugin.php',
+            'plugin',
+            [
+                'namespace' => $config['namespace'],
+                'class' => $config['studly_name'].'Plugin',
+                'id' => $config['kebab_name'],
+                'name' => $config['studly_name'],
+                'description' => "{$config['studly_name']} plugin for Laravilt",
+                'author' => $config['author'],
+                'config' => $config['config_name'],
+                'assets_tag' => $config['assets_tag'],
+            ]
+        );
+    }
+
+    /**
+     * Generate composer.json with dependencies and autoloading.
+     *
+     * Creates package configuration following Laravel package standards
+     * without requiring filament/filament directly.
+     */
+    public function generateComposerJson(array $config): void
+    {
+        $this->processor->generateFile(
+            $config['base_path'].'/composer.json',
+            'composer.json',
+            [
+                'vendor' => $config['vendor_lower'],
+                'package' => $config['kebab_name'],
+                'description' => "{$config['studly_name']} plugin for Laravilt",
+                'author' => $config['author'],
+                'email' => $config['email'],
+                'license' => $config['license'],
+                'namespace' => str_replace('\\', '\\\\', $config['namespace']),
+                'class' => $config['studly_name'].'Plugin',
+            ]
+        );
+    }
+
+    /**
+     * Generate plugin configuration file.
+     *
+     * Creates a Laravel config file with environment variable support.
+     */
+    public function generateConfig(array $config): void
+    {
+        $this->processor->generateFile(
+            $config['base_path'].'/config/'.$config['config_name'].'.php',
+            'config',
+            [
+                'env_prefix' => $config['env_prefix'],
+            ]
+        );
+    }
+
+    /**
+     * Generate README.md with installation and usage instructions.
+     */
+    public function generateReadme(array $config): void
+    {
+        $this->processor->generateFile(
+            $config['base_path'].'/README.md',
+            'README.md',
+            [
+                'name' => $config['studly_name'],
+                'description' => "{$config['studly_name']} plugin for Laravilt",
+                'vendor' => $config['vendor_lower'],
+                'package' => $config['kebab_name'],
+                'namespace' => $config['namespace'],
+                'class' => $config['studly_name'].'Plugin',
+                'config' => $config['config_name'],
+                'assets_tag' => $config['assets_tag'],
+            ]
+        );
+    }
+
+    /**
+     * Generate .gitignore file with common exclusions.
+     */
+    public function generateGitignore(string $basePath): void
+    {
+        $content = "/node_modules\n/dist\n/vendor\ncomposer.lock\npackage-lock.json\n.env\n.DS_Store\n.idea\n.vscode\n";
+        $this->processor->files->put($basePath.'/.gitignore', $content);
+    }
+}
+</file>
+
+<file path="src/Services/Generation/DocumentationGenerator.php">
+<?php
+
+namespace Laravilt\Plugins\Services\Generation;
+
+/**
+ * Generates documentation files for the plugin.
+ *
+ * Creates CHANGELOG, LICENSE, SECURITY, and CODE_OF_CONDUCT files
+ * following open source best practices.
+ */
+class DocumentationGenerator
+{
+    public function __construct(protected StubProcessor $processor) {}
+
+    /**
+     * Generate CHANGELOG.md file.
+     *
+     * Creates a changelog file following Keep a Changelog format.
+     */
+    public function generateChangelog(string $basePath): void
+    {
+        $content = "# Changelog\n\nAll notable changes will be documented in this file.\n\n## 1.0.0 - TBD\n\n- Initial release\n";
+        $this->processor->files->put($basePath.'/CHANGELOG.md', $content);
+    }
+
+    /**
+     * Generate LICENSE.md file.
+     *
+     * Creates an MIT License file with copyright information.
+     */
+    public function generateLicense(array $config): void
+    {
+        $year = date('Y');
+        $content = "# The MIT License (MIT)\n\nCopyright (c) {$year} {$config['author']}\n\nPermission is hereby granted, free of charge...\n";
+        $this->processor->files->put($config['base_path'].'/LICENSE.md', $content);
+    }
+
+    /**
+     * Generate SECURITY.md file.
+     *
+     * Creates a security policy file with vulnerability reporting instructions.
+     */
+    public function generateSecurity(array $config): void
+    {
+        $content = "# Security Policy\n\nIf you discover a security vulnerability, please email {$config['email']}.\n";
+        $this->processor->files->put($config['base_path'].'/SECURITY.md', $content);
+    }
+
+    /**
+     * Generate CODE_OF_CONDUCT.md file.
+     *
+     * Creates a code of conduct for community participation.
+     */
+    public function generateCodeOfConduct(string $basePath): void
+    {
+        $content = "# Code of Conduct\n\nWe pledge to make participation in our community a harassment-free experience for everyone.\n";
+        $this->processor->files->put($basePath.'/CODE_OF_CONDUCT.md', $content);
+    }
+}
+</file>
+
+<file path="src/Services/Generation/GitHubFilesGenerator.php">
+<?php
+
+namespace Laravilt\Plugins\Services\Generation;
+
+/**
+ * Generates GitHub-specific files including workflows and templates.
+ *
+ * Creates GitHub Actions workflows for CI/CD and issue/PR templates
+ * for better community collaboration.
+ */
+class GitHubFilesGenerator
+{
+    public function __construct(protected StubProcessor $processor) {}
+
+    /**
+     * Generate GitHub Actions workflow files.
+     *
+     * Creates workflows for automated testing and code style fixing.
+     */
+    public function generateWorkflows(array $config): void
+    {
+        $this->generateTestsWorkflow($config['base_path']);
+        $this->generateCodeStyleWorkflow($config['base_path']);
+    }
+
+    /**
+     * Generate GitHub templates and configuration files.
+     *
+     * Creates FUNDING.yml and CONTRIBUTING.md for community engagement.
+     */
+    public function generateTemplates(array $config): void
+    {
+        $this->processor->files->put(
+            $config['base_path'].'/.github/FUNDING.yml',
+            "github: fadymondy\n"
+        );
+
+        $this->processor->files->put(
+            $config['base_path'].'/.github/CONTRIBUTING.md',
+            "# Contributing\n\nThank you for considering contributing!\n"
+        );
+    }
+
+    /**
+     * Generate tests workflow for GitHub Actions.
+     */
+    protected function generateTestsWorkflow(string $basePath): void
+    {
+        $content = <<<'YAML'
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: [8.2, 8.3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+      - run: composer install
+      - run: vendor/bin/pest
+YAML;
+        $this->processor->files->put($basePath.'/.github/workflows/tests.yml', $content);
+    }
+
+    /**
+     * Generate code style workflow for GitHub Actions.
+     */
+    protected function generateCodeStyleWorkflow(string $basePath): void
+    {
+        $content = <<<'YAML'
+name: Fix Code Style
+on: [push]
+jobs:
+  style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aglipanci/laravel-pint-action@2.4
+YAML;
+        $this->processor->files->put($basePath.'/.github/workflows/fix-php-code-styling.yml', $content);
+    }
+}
+</file>
+
+<file path="src/Services/Generation/StubProcessor.php">
+<?php
+
+namespace Laravilt\Plugins\Services\Generation;
+
+use Illuminate\Filesystem\Filesystem;
+
+/**
+ * Processes stub files by replacing placeholders with actual values.
+ *
+ * This class is responsible for loading stub templates and performing
+ * placeholder replacement to generate final file content.
+ */
+class StubProcessor
+{
+    public function __construct(public Filesystem $files) {}
+
+    /**
+     * Get stub path from stub name.
+     */
+    protected function getStubPath(string $name): string
+    {
+        return __DIR__.'/../../Stubs/'.$name.'.stub';
+    }
+
+    /**
+     * Get processed stub content with replacements.
+     *
+     * @param  string  $stubName  Name of the stub file (without .stub extension)
+     * @param  array  $replacements  Key-value pairs for placeholder replacement
+     * @return string Processed stub content
+     *
+     * @throws \RuntimeException if stub file not found
+     */
+    public function process(string $stubName, array $replacements): string
+    {
+        $stubPath = $this->getStubPath($stubName);
+
+        if (! $this->files->exists($stubPath)) {
+            throw new \RuntimeException("Stub file not found: {$stubPath}");
+        }
+
+        $stub = $this->files->get($stubPath);
+
+        foreach ($replacements as $key => $value) {
+            $stub = str_replace("{{ {$key} }}", $value, $stub);
+        }
+
+        return $stub;
+    }
+
+    /**
+     * Generate file from stub with replacements.
+     *
+     * @param  string  $path  Full path where file should be created
+     * @param  string  $stubName  Name of the stub file
+     * @param  array  $replacements  Placeholder replacements
+     */
+    public function generateFile(string $path, string $stubName, array $replacements): void
+    {
+        $content = $this->process($stubName, $replacements);
+        $this->files->ensureDirectoryExists(dirname($path));
+        $this->files->put($path, $content);
+    }
+}
+</file>
+
+<file path="src/Services/Generation/TestingFilesGenerator.php">
+<?php
+
+namespace Laravilt\Plugins\Services\Generation;
+
+/**
+ * Generates testing configuration files for plugin quality assurance.
+ *
+ * Creates PHPUnit, Pest, PHPStan, Pint, and Testbench configuration
+ * files to ensure plugin code quality and compatibility.
+ */
+class TestingFilesGenerator
+{
+    public function __construct(protected StubProcessor $processor) {}
+
+    /**
+     * Generate phpunit.xml configuration.
+     *
+     * Creates PHPUnit configuration with test suite setup and coverage options.
+     */
+    public function generatePhpUnit(string $basePath): void
+    {
+        $content = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
+XML;
+        $this->processor->files->put($basePath.'/phpunit.xml', $content);
+    }
+
+    /**
+     * Generate pint.json for Laravel Pint code styling.
+     *
+     * Configures Laravel Pint to use Laravel preset for consistent formatting.
+     */
+    public function generatePint(string $basePath): void
+    {
+        $content = "{\n    \"preset\": \"laravel\"\n}\n";
+        $this->processor->files->put($basePath.'/pint.json', $content);
+    }
+
+    /**
+     * Generate phpstan.neon for static analysis.
+     *
+     * Configures PHPStan at level 5 for comprehensive code analysis.
+     */
+    public function generatePhpStan(string $basePath): void
+    {
+        $content = "parameters:\n    level: 5\n    paths:\n        - src\n";
+        $this->processor->files->put($basePath.'/phpstan.neon', $content);
+    }
+
+    /**
+     * Generate testbench.yaml for Orchestra Testbench.
+     *
+     * Configures Testbench workbench for plugin development and testing.
+     */
+    public function generateTestbench(string $basePath): void
+    {
+        $content = "workbench:\n    start: '/'\n    install: true\n";
+        $this->processor->files->put($basePath.'/testbench.yaml', $content);
+    }
+
+    /**
+     * Generate Pest.php configuration for Pest testing framework.
+     *
+     * Sets up Pest to use specific test directories.
+     */
+    public function generatePestConfig(array $config): void
+    {
+        $content = "<?php\n\nuses()->in('Feature', 'Unit');\n";
+        $this->processor->files->put($config['base_path'].'/tests/Pest.php', $content);
+    }
+}
+</file>
+
+<file path="src/Services/PluginGenerator.php">
+<?php
+
+namespace Laravilt\Plugins\Services;
+
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Str;
+use Laravilt\Plugins\Services\Generation\AssetFilesGenerator;
+use Laravilt\Plugins\Services\Generation\CoreFilesGenerator;
+use Laravilt\Plugins\Services\Generation\DocumentationGenerator;
+use Laravilt\Plugins\Services\Generation\GitHubFilesGenerator;
+use Laravilt\Plugins\Services\Generation\TestingFilesGenerator;
+
+/**
+ * Orchestrates plugin generation by coordinating specialized generators.
+ *
+ * This service delegates file generation to focused generator classes,
+ * each responsible for a specific aspect of the plugin structure.
+ */
+class PluginGenerator
+{
+    public function __construct(
+        protected Filesystem $files,
+        protected CoreFilesGenerator $coreGenerator,
+        protected TestingFilesGenerator $testingGenerator,
+        protected DocumentationGenerator $docGenerator,
+        protected GitHubFilesGenerator $githubGenerator,
+        protected AssetFilesGenerator $assetGenerator
+    ) {}
+
+    /**
+     * Create the plugin directory structure.
+     */
+    public function createDirectoryStructure(string $basePath): void
+    {
+        $directories = [
+            'src', 'src/Models', 'src/Resources', 'src/Pages', 'src/Widgets', 'src/Components',
+            'config', 'database/migrations', 'database/factories', 'database/seeders',
+            'resources/views', 'resources/lang/en', 'resources/lang/ar',
+            'resources/css', 'resources/js', 'dist',
+            'tests/Feature', 'tests/Unit', 'tests/database/factories', 'tests/database/seeders',
+            '.github/workflows', '.github/ISSUE_TEMPLATE',
+            'arts', 'docs', 'workbench',
+        ];
+
+        foreach ($directories as $dir) {
+            $this->files->makeDirectory("{$basePath}/{$dir}", 0755, true, true);
+        }
+
+        // Add .gitkeep to empty directories
+        foreach (['arts', 'workbench'] as $dir) {
+            $this->files->put("{$basePath}/{$dir}/.gitkeep", '');
+        }
+    }
+
+    /**
+     * Generate core plugin files.
+     */
+    public function generateCoreFiles(array $config): void
+    {
+        $this->coreGenerator->generatePluginClass($config);
+        $this->coreGenerator->generateComposerJson($config);
+        $this->coreGenerator->generateConfig($config);
+        $this->coreGenerator->generateReadme($config);
+        $this->coreGenerator->generateGitignore($config['base_path']);
+    }
+
+    /**
+     * Generate GitHub workflow files.
+     */
+    public function generateGitHubFiles(array $config): void
+    {
+        $this->githubGenerator->generateWorkflows($config);
+        $this->githubGenerator->generateTemplates($config);
+    }
+
+    /**
+     * Generate testing configuration files.
+     */
+    public function generateTestingFiles(array $config): void
+    {
+        $this->testingGenerator->generatePhpUnit($config['base_path']);
+        $this->testingGenerator->generatePint($config['base_path']);
+        $this->testingGenerator->generatePhpStan($config['base_path']);
+        $this->testingGenerator->generateTestbench($config['base_path']);
+        $this->testingGenerator->generatePestConfig($config);
+    }
+
+    /**
+     * Generate documentation files.
+     */
+    public function generateDocumentationFiles(array $config): void
+    {
+        $this->docGenerator->generateChangelog($config['base_path']);
+        $this->docGenerator->generateLicense($config);
+        $this->docGenerator->generateSecurity($config);
+        $this->docGenerator->generateCodeOfConduct($config['base_path']);
+    }
+
+    /**
+     * Generate sample components.
+     */
+    public function generateSampleComponents(array $config): void
+    {
+        // Sample widget
+        $this->files->ensureDirectoryExists($config['base_path'].'/src/Widgets');
+        $widgetContent = $this->coreGenerator->processor->process('widget', [
+            'namespace' => $config['namespace'],
+            'class' => 'StatsWidget',
+            'view' => $config['kebab_name'].'::widgets.stats',
+        ]);
+        $this->files->put($config['base_path'].'/src/Widgets/StatsWidget.php', $widgetContent);
+
+        // Sample widget view
+        $viewPath = $config['base_path'].'/resources/views/widgets';
+        $this->files->ensureDirectoryExists($viewPath);
+        $this->files->put($viewPath.'/stats.blade.php', "<div>\n    <!-- Stats Widget Content -->\n</div>\n");
+    }
+
+    /**
+     * Generate asset files (Vite, PostCSS, etc).
+     */
+    public function generateAssetFiles(array $config): void
+    {
+        $this->assetGenerator->generatePackageJson($config);
+        $this->assetGenerator->generateViteConfig($config);
+        $this->assetGenerator->generatePostCssConfig($config['base_path']);
+        $this->assetGenerator->generateTailwindConfig($config['base_path']);
+        $this->assetGenerator->generateCssFile($config['base_path']);
+        $this->assetGenerator->generateJsFile($config['base_path'], $config['kebab_name']);
+    }
+
+    /**
+     * Prepare configuration array for generators.
+     */
+    public function prepareConfig(string $name, string $vendor, string $basePath): array
+    {
+        $studlyName = Str::studly($name);
+        $kebabName = Str::kebab($name);
+        $snakeName = Str::snake($name);
+        $vendorLower = Str::lower($vendor);
+        $namespace = Str::studly($vendorLower).'\\'.$studlyName;
+
+        return [
+            'name' => $name,
+            'studly_name' => $studlyName,
+            'kebab_name' => $kebabName,
+            'snake_name' => $snakeName,
+            'vendor' => $vendor,
+            'vendor_lower' => $vendorLower,
+            'namespace' => $namespace,
+            'base_path' => $basePath,
+            'config_name' => 'laravilt-'.$kebabName,
+            'env_prefix' => 'LARAVILT_'.strtoupper($snakeName),
+            'assets_tag' => 'laravilt-'.$kebabName.'-assets',
+            'author' => config('laravilt-plugins.defaults.author', 'Fady Mondy'),
+            'email' => config('laravilt-plugins.defaults.email', 'info@3x1.io'),
+            'license' => config('laravilt-plugins.defaults.license', 'MIT'),
+        ];
+    }
+}
+</file>
+
+<file path="src/Stubs/composer.json.stub">
+{
+    "name": "{{ vendor }}/{{ package }}",
+    "description": "{{ description }}",
+    "type": "library",
+    "license": "{{ license }}",
+    "keywords": [
+        "laravel",
+        "laravilt",
+        "plugin"
+    ],
+    "authors": [
+        {
+            "name": "{{ author }}",
+            "email": "{{ email }}"
+        }
+    ],
+    "require": {
+        "php": "^8.2|^8.3|^8.4",
+        "spatie/laravel-package-tools": "^1.14"
+    },
+    "require-dev": {
+        "larastan/larastan": "^2.9||^3.0",
+        "laravel/pint": "^1.14",
+        "nunomaduro/collision": "^8.1.1||^7.10.0",
+        "orchestra/testbench": "^10.0.0||^9.0.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-arch": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "pestphp/pest-plugin-livewire": "^3.0",
+        "pestphp/pest-plugin-type-coverage": "^3.5",
+        "phpstan/extension-installer": "^1.3||^2.0",
+        "phpstan/phpstan-deprecation-rules": "^1.1||^2.0",
+        "phpstan/phpstan-phpunit": "^1.3||^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "{{ namespace }}\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "{{ namespace }}\\Tests\\": "tests/",
+            "{{ namespace }}\\Tests\\Database\\Factories\\": "tests/database/factories",
+            "{{ namespace }}\\Tests\\Database\\Seeders\\": "tests/database/seeders"
+        }
+    },
+    "scripts": {
+        "testbench": "vendor/bin/testbench package:discover --ansi",
+        "db": "vendor/bin/testbench package:create-sqlite-db && vendor/bin/testbench migrate",
+        "analyse": "vendor/bin/phpstan analyse",
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage",
+        "format": "vendor/bin/pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "{{ namespace }}\\{{ class }}"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
+</file>
+
+<file path="src/Stubs/config.stub">
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Plugin Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configure your plugin settings here.
+    |
+    */
+
+    'enabled' => env('{{ env_prefix }}_ENABLED', true),
+
+    // Add your configuration options here
+];
+</file>
+
+<file path="src/Stubs/migration.stub">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('{{ table }}', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('{{ table }}');
+    }
+};
+</file>
+
+<file path="src/Stubs/model.stub">
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class {{ class }} extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+}
+</file>
+
+<file path="src/Stubs/package.json.stub">
+{
+    "name": "{{ package }}",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^5.0.0",
+        "autoprefixer": "^10.4.16",
+        "laravel-vite-plugin": "^1.0.0",
+        "postcss": "^8.4.32",
+        "tailwindcss": "^3.4.0",
+        "vite": "^5.0.0",
+        "vue": "^3.4.0"
+    }
+}
+</file>
+
+<file path="src/Stubs/page.stub">
+<?php
+
+namespace {{ namespace }}\Pages;
+
+use Filament\Pages\Page;
+
+class {{ class }} extends Page
+{
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
+    protected static string $view = '{{ view }}';
+}
+</file>
+
+<file path="src/Stubs/plugin.stub">
+<?php
+
+namespace {{ namespace }};
+
+use Filament\Contracts\Plugin;
+use Filament\Panel;
+use Laravilt\Plugins\PluginProvider;
+
+class {{ class }} extends PluginProvider implements Plugin
+{
+    /**
+     * The plugin ID (must be unique).
+     */
+    protected static string $id = '{{ id }}';
+
+    /**
+     * The plugin name.
+     */
+    protected static string $name = '{{ name }}';
+
+    /**
+     * The plugin version.
+     */
+    protected static string $version = '1.0.0';
+
+    /**
+     * The plugin description.
+     */
+    protected static string $description = '{{ description }}';
+
+    /**
+     * The plugin author.
+     */
+    protected static string $author = '{{ author }}';
+
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        // Merge config
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/{{ config }}.php',
+            '{{ config }}'
+        );
+
+        // Register any services
+    }
+
+    /**
+     * Boot services.
+     */
+    public function boot(): void
+    {
+        // Load views
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', '{{ id }}');
+
+        // Load translations
+        $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', '{{ id }}');
+
+        // Load migrations
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+
+        if ($this->app->runningInConsole()) {
+            // Publish config
+            $this->publishes([
+                __DIR__ . '/../config/{{ config }}.php' => config_path('{{ config }}.php'),
+            ], '{{ config }}-config');
+
+            // Publish assets
+            $this->publishes([
+                __DIR__ . '/../dist' => public_path('vendor/laravilt/{{ id }}'),
+            ], '{{ assets_tag }}');
+
+            // Publish views
+            $this->publishes([
+                __DIR__ . '/../resources/views' => resource_path('views/vendor/{{ id }}'),
+            ], '{{ id }}-views');
+
+            // Publish migrations
+            $this->publishes([
+                __DIR__ . '/../database/migrations' => database_path('migrations'),
+            ], '{{ id }}-migrations');
+
+            // Register commands
+            // $this->commands([]);
+        }
+    }
+
+    /**
+     * Register the plugin with a Filament panel.
+     */
+    public function register(Panel $panel): void
+    {
+        // Register resources
+        // $panel->resources([]);
+
+        // Register pages
+        // $panel->pages([]);
+
+        // Register widgets
+        // $panel->widgets([]);
+
+        // Register render hooks
+        // $panel->renderHook(
+        //     'panels::body.end',
+        //     fn () => view('{{ id }}::scripts')
+        // );
+    }
+
+    /**
+     * Boot the plugin for a panel (optional).
+     */
+    public function boot(Panel $panel): void
+    {
+        // Add panel-specific boot logic if needed
+    }
+
+    /**
+     * Get the plugin ID.
+     */
+    public function getId(): string
+    {
+        return static::$id;
+    }
+}
+</file>
+
+<file path="src/Stubs/README.md.stub">
+# {{ name }} Plugin for Laravilt
+
+{{ description }}
+
+## Installation
+
+You can install the plugin via composer:
+
+```bash
+composer require {{ vendor }}/{{ package }}
+```
+
+## Usage
+
+Register the plugin in your Panel provider:
+
+```php
+use {{ namespace }}\{{ class }};
+
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->plugins([
+            {{ class }}::make(),
+        ]);
+}
+```
+
+## Configuration
+
+Publish the config file:
+
+```bash
+php artisan vendor:publish --tag="{{ config }}-config"
+```
+
+## Assets
+
+Publish the plugin assets:
+
+```bash
+php artisan vendor:publish --tag="{{ assets_tag }}"
+```
+
+## Testing
+
+```bash
+composer test
+```
+
+## Code Style
+
+```bash
+composer format
+```
+
+## Static Analysis
+
+```bash
+composer analyse
+```
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+</file>
+
+<file path="src/Stubs/resource.stub">
+<?php
+
+namespace {{ namespace }}\Resources;
+
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use {{ namespace }}\Resources\{{ class }}Resource\Pages;
+use {{ model_namespace }}\{{ model }};
+
+class {{ class }}Resource extends Resource
+{
+    protected static ?string $model = {{ model }}::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable(),
+            ])
+            ->filters([
+                //
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\List{{ class }}::route('/'),
+            'create' => Pages\Create{{ class }}::route('/create'),
+            'edit' => Pages\Edit{{ class }}::route('/{record}/edit'),
+        ];
+    }
+}
+</file>
+
+<file path="src/Stubs/widget.stub">
+<?php
+
+namespace {{ namespace }}\Widgets;
+
+use Filament\Widgets\Widget;
+
+class {{ class }} extends Widget
+{
+    protected static string $view = '{{ view }}';
+
+    protected int | string | array $columnSpan = 'full';
+
+    protected static ?int $sort = null;
+}
+</file>
+
+<file path="src/Testing/PluginTestCase.php">
+<?php
+
+namespace Laravilt\Plugins\Testing;
+
+use Laravilt\Plugins\PluginsServiceProvider;
+use Orchestra\Testbench\TestCase as Orchestra;
+
+abstract class PluginTestCase extends Orchestra
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->setUpDatabase();
+        $this->setUpPluginAssets();
+    }
+
+    protected function getPackageProviders($app): array
+    {
+        return [
+            PluginsServiceProvider::class,
+            $this->getPluginServiceProvider(),
+        ];
+    }
+
+    /**
+     * Get the plugin service provider class.
+     */
+    abstract protected function getPluginServiceProvider(): string;
+
+    /**
+     * Setup the test database.
+     */
+    protected function setUpDatabase(): void
+    {
+        $migrationsPath = $this->getPluginMigrationsPath();
+
+        if ($migrationsPath && is_dir($migrationsPath)) {
+            $this->loadMigrationsFrom($migrationsPath);
+        }
+    }
+
+    /**
+     * Get the plugin migrations path.
+     */
+    protected function getPluginMigrationsPath(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Setup plugin assets for testing.
+     */
+    protected function setUpPluginAssets(): void
+    {
+        // Publish plugin assets if needed
+    }
+
+    /**
+     * Assert that a plugin is registered.
+     */
+    protected function assertPluginRegistered(string $pluginId): void
+    {
+        $manager = app('laravilt.plugins');
+
+        $this->assertTrue(
+            $manager->has($pluginId),
+            "Plugin '{$pluginId}' is not registered."
+        );
+    }
+
+    /**
+     * Assert that a plugin is enabled.
+     */
+    protected function assertPluginEnabled(string $pluginId): void
+    {
+        $manager = app('laravilt.plugins');
+        $plugin = $manager->get($pluginId);
+
+        $this->assertTrue(
+            $plugin->isEnabled(),
+            "Plugin '{$pluginId}' is not enabled."
+        );
+    }
+}
+</file>
+
+<file path="src/BasePlugin.php">
+<?php
+
+namespace Laravilt\Plugins;
+
+use Filament\Panel;
+use Laravilt\Plugins\Concerns\HasAssets;
+use Laravilt\Plugins\Concerns\HasCommands;
+use Laravilt\Plugins\Concerns\HasComponents;
+use Laravilt\Plugins\Concerns\HasMigrations;
+use Laravilt\Plugins\Concerns\HasTranslations;
+use Laravilt\Plugins\Concerns\HasViews;
+use Laravilt\Plugins\Contracts\Plugin;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
+
+abstract class BasePlugin extends PackageServiceProvider implements Plugin
+{
+    use HasAssets;
+    use HasCommands;
+    use HasComponents;
+    use HasMigrations;
+    use HasTranslations;
+    use HasViews;
+
+    /**
+     * The plugin ID.
+     */
+    protected static string $id;
+
+    /**
+     * The plugin name.
+     */
+    protected static string $name;
+
+    /**
+     * The plugin version.
+     */
+    protected static string $version = '1.0.0';
+
+    /**
+     * The plugin description.
+     */
+    protected static string $description = '';
+
+    /**
+     * The plugin author.
+     */
+    protected static string $author = '';
+
+    /**
+     * Plugin dependencies.
+     *
+     * @var array<string>
+     */
+    protected static array $dependencies = [];
+
+    /**
+     * Whether the plugin is enabled.
+     */
+    protected bool $enabled = true;
+
+    /**
+     * Get the plugin ID.
+     */
+    public function getId(): string
+    {
+        return static::$id ?? static::$name;
+    }
+
+    /**
+     * Get the plugin name.
+     */
+    public function getName(): string
+    {
+        return static::$name;
+    }
+
+    /**
+     * Get the plugin version.
+     */
+    public function getVersion(): string
+    {
+        return static::$version;
+    }
+
+    /**
+     * Get the plugin description.
+     */
+    public function getDescription(): string
+    {
+        return static::$description;
+    }
+
+    /**
+     * Get the plugin author.
+     */
+    public function getAuthor(): string
+    {
+        return static::$author;
+    }
+
+    /**
+     * Get plugin dependencies.
+     */
+    public function getDependencies(): array
+    {
+        return static::$dependencies;
+    }
+
+    /**
+     * Check if dependencies are satisfied.
+     */
+    public function dependenciesSatisfied(): bool
+    {
+        $manager = app('laravilt.plugins');
+
+        foreach ($this->getDependencies() as $dependency) {
+            if (! $manager->has($dependency)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if the plugin is enabled.
+     */
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
+
+    /**
+     * Enable the plugin.
+     */
+    public function enable(): static
+    {
+        $this->enabled = true;
+
+        return $this;
+    }
+
+    /**
+     * Disable the plugin.
+     */
+    public function disable(): static
+    {
+        $this->enabled = false;
+
+        return $this;
+    }
+
+    /**
+     * Register the plugin with a panel.
+     */
+    abstract public function register(Panel $panel): void;
+
+    /**
+     * Boot the plugin for a panel.
+     */
+    public function boot(Panel $panel): void
+    {
+        // Can be overridden by plugin implementations
+    }
+
+    /**
+     * Create a new instance of the plugin.
+     */
+    public static function make(): static
+    {
+        return app(static::class);
+    }
+
+    /**
+     * Get the default instance of the plugin.
+     */
+    public static function get(): static
+    {
+        return filament(static::$id ?? static::$name);
+    }
+
+    /**
+     * Configure the package.
+     */
+    abstract public function configurePackage(Package $package): void;
+}
+</file>
+
+<file path="src/PluginProvider.php">
+<?php
+
+namespace Laravilt\Plugins;
+
+use Filament\Panel;
+use Illuminate\Support\ServiceProvider;
+use Laravilt\Plugins\Concerns\HasAssets;
+use Laravilt\Plugins\Concerns\HasCommands;
+use Laravilt\Plugins\Concerns\HasComponents;
+use Laravilt\Plugins\Concerns\HasMigrations;
+use Laravilt\Plugins\Concerns\HasTranslations;
+use Laravilt\Plugins\Concerns\HasViews;
+use Laravilt\Plugins\Contracts\Plugin;
+
+abstract class PluginProvider extends ServiceProvider implements Plugin
+{
+    use HasAssets;
+    use HasCommands;
+    use HasComponents;
+    use HasMigrations;
+    use HasTranslations;
+    use HasViews;
+
+    /**
+     * The plugin ID.
+     */
+    protected static string $id;
+
+    /**
+     * The plugin name.
+     */
+    protected static string $name;
+
+    /**
+     * The plugin version.
+     */
+    protected static string $version = '1.0.0';
+
+    /**
+     * The plugin description.
+     */
+    protected static string $description = '';
+
+    /**
+     * The plugin author.
+     */
+    protected static string $author = '';
+
+    /**
+     * Plugin dependencies.
+     *
+     * @var array<string>
+     */
+    protected static array $dependencies = [];
+
+    /**
+     * Whether the plugin is enabled.
+     */
+    protected bool $enabled = true;
+
+    /**
+     * Get the plugin ID.
+     */
+    public function getId(): string
+    {
+        return static::$id ?? static::$name;
+    }
+
+    /**
+     * Get the plugin name.
+     */
+    public function getName(): string
+    {
+        return static::$name;
+    }
+
+    /**
+     * Get the plugin version.
+     */
+    public function getVersion(): string
+    {
+        return static::$version;
+    }
+
+    /**
+     * Get the plugin description.
+     */
+    public function getDescription(): string
+    {
+        return static::$description;
+    }
+
+    /**
+     * Get the plugin author.
+     */
+    public function getAuthor(): string
+    {
+        return static::$author;
+    }
+
+    /**
+     * Get plugin dependencies.
+     */
+    public function getDependencies(): array
+    {
+        return static::$dependencies;
+    }
+
+    /**
+     * Check if dependencies are satisfied.
+     */
+    public function dependenciesSatisfied(): bool
+    {
+        $manager = app('laravilt.plugins');
+
+        foreach ($this->getDependencies() as $dependency) {
+            if (! $manager->has($dependency)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if the plugin is enabled.
+     */
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
+
+    /**
+     * Enable the plugin.
+     */
+    public function enable(): static
+    {
+        $this->enabled = true;
+
+        return $this;
+    }
+
+    /**
+     * Disable the plugin.
+     */
+    public function disable(): static
+    {
+        $this->enabled = false;
+
+        return $this;
+    }
+
+    /**
+     * Register the plugin with a panel.
+     */
+    abstract public function register(Panel $panel): void;
+
+    /**
+     * Boot the plugin for a panel.
+     */
+    public function boot(Panel $panel): void
+    {
+        // Can be overridden by plugin implementations
+    }
+
+    /**
+     * Create a new instance of the plugin.
+     */
+    public static function make(): static
+    {
+        return app(static::class);
+    }
+
+    /**
+     * Get the default instance of the plugin.
+     */
+    public static function get(): static
+    {
+        /** @var \Filament\FilamentManager $filament */
+        $filament = app('filament');
+
+        return $filament->getPlugin(static::$id ?? static::$name);
+    }
+}
+</file>
+
+<file path=".gitignore">
+/.phpunit.cache
+/bootstrap/ssr
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/resources/js/actions
+/resources/js/routes
+/resources/js/wayfinder
+/vendor
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/auth.json
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+</file>
+
+<file path=".github/ISSUE_TEMPLATE/bug.yml">
+name: Bug Report
+description: Report a bug
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Package Version
+      description: What version of the package are you using?
+    validations:
+      required: true
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP Version
+      description: What version of PHP are you using?
+    validations:
+      required: true
+  - type: input
+    id: laravel-version
+    attributes:
+      label: Laravel Version
+      description: What version of Laravel are you using?
+    validations:
+      required: true
+</file>
+
+<file path=".github/ISSUE_TEMPLATE/config.yml">
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/laravilt/plugins/discussions/new?category=q-a
+    about: Ask the community for help
+  - name: Request a feature
+    url: https://github.com/laravilt/plugins/discussions/new?category=ideas
+    about: Share ideas for new features
+</file>
+
+<file path=".github/workflows/dependabot-auto-merge.yml">
+name: Dependabot Auto-Merge
+
+on: pull_request_target
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Auto-merge Dependabot PRs for semver-minor updates
+        if: ${{steps.metadata.outputs.update-type == 'version-update:semver-minor'}}
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Auto-merge Dependabot PRs for semver-patch updates
+        if: ${{steps.metadata.outputs.update-type == 'version-update:semver-patch'}}
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+</file>
+
+<file path=".github/workflows/fix-php-code-styling.yml">
+name: Fix PHP Code Styling
+
+on: [push]
+
+jobs:
+  php-code-styling:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Fix PHP code style issues
+        uses: aglipanci/laravel-pint-action@2.4
+        with:
+          preset: laravel
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Fix styling
+</file>
+
+<file path=".github/workflows/tests.yml">
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        php: [8.2, 8.3]
+        laravel: [11.*, 12.*]
+        dependency-version: [prefer-stable]
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.dependency-version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
+          composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction
+
+      - name: Execute tests
+        run: vendor/bin/pest
+</file>
+
+<file path=".github/CONTRIBUTING.md">
+# Contributing to Laravilt Plugins
+
+Thank you for considering contributing to Laravilt Plugins!
+
+## Pull Requests
+
+1. Fork the repository
+2. Create a new branch for your feature
+3. Write tests for your changes
+4. Ensure all tests pass
+5. Submit a pull request
+
+## Coding Standards
+
+- Follow PSR-12 coding standards
+- Run `composer format` before committing
+- Write tests for new features
+- Ensure PHPStan passes with level 5
+
+## Running Tests
+
+```bash
+composer test
+```
+
+## Code Style
+
+```bash
+composer format
+```
+
+## Static Analysis
+
+```bash
+composer analyse
+```
+</file>
+
+<file path=".github/dependabot.yml">
+version: 2
+updates:
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+</file>
+
+<file path=".github/FUNDING.yml">
+github: fadymondy
+</file>
+
+<file path=".github/SECURITY.md">
+# Security Policy
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability within Laravilt Plugins, please send an email to security@laravilt.com. All security vulnerabilities will be promptly addressed.
+
+Please do not publicly disclose the issue until it has been addressed by the team.
+</file>
+
+<file path="docs/index.md">
+# Laravilt Plugins Documentation
+
+Complete plugin system with generator, management, and FilamentPHP compatibility for Laravilt.
+
+## Installation
+
+```bash
+composer require laravilt/plugins
+```
+
+The package will be auto-discovered by Laravel.
+
+## Usage
+
+### Creating a New Plugin
+
+Generate a new plugin with complete professional structure:
+
+```bash
+php artisan laravilt:plugin BlogExtensions --vendor=mycompany
+```
+
+### Options
+
+- `--vendor`: Vendor name (default: laravilt)
+- `--path`: Custom output path
+- `--no-components`: Skip creating sample components
+- `--no-assets`: Skip asset scaffolding
+
+### Generated Structure
+
+The command generates a complete professional package with:
+
+- GitHub Actions workflows (tests, code styling, dependabot)
+- Issue templates
+- Testing configuration (PHPUnit, Pest, PHPStan, Pint)
+- Documentation structure
+- Laravel Workbench setup
+- Sample components and widgets
+- Asset build configuration (Vite, Vue, Tailwind)
+- i18n support (English + Arabic)
+
+## Plugin Development
+
+### Service Provider
+
+All generated plugins extend `PackageServiceProvider` and implement `Filament\Contracts\Plugin`:
+
+```php
+class MyPluginServiceProvider extends PackageServiceProvider implements Plugin
+{
+    public static string $name = 'my-plugin';
+
+    public function configurePackage(Package $package): void
+    {
+        $package
+            ->name('laravilt-my-plugin')
+            ->hasConfigFile()
+            ->hasViews()
+            ->hasTranslations()
+            ->hasMigrations([])
+            ->hasCommands([]);
+    }
+}
+```
+
+### Naming Conventions
+
+- **Config files**: `laravilt-{plugin}.php`
+- **Env variables**: `LARAVILT_{PLUGIN}_ENABLED`
+- **Publish tags**: `laravilt-{plugin}-config`, `laravilt-{plugin}-assets`
+- **Asset paths**: `public/vendor/laravilt/{plugin}/`
+
+## API Reference
+
+### PluginManager
+
+Manages plugin registration and lifecycle:
+
+```php
+use Laravilt\Plugins\Contracts\PluginManager;
+
+$manager = app(PluginManager::class);
+
+// Register a plugin
+$manager->register($plugin);
+
+// Boot a plugin
+$manager->boot('plugin-id');
+
+// Get all plugins
+$plugins = $manager->all();
+
+// Get enabled plugins
+$enabled = $manager->enabled();
+```
+
+### Plugin Discovery
+
+Automatically discovers plugins from installed packages:
+
+```php
+use Laravilt\Plugins\Support\PluginDiscovery;
+
+$discovery = new PluginDiscovery($app);
+$plugins = $discovery->discover();
+```
+
+## Testing
+
+Run tests:
+
+```bash
+composer test
+```
+
+Code style:
+
+```bash
+composer format
+```
+
+Static analysis:
+
+```bash
+composer analyse
+```
+
+## Examples
+
+### Creating a Custom Component
+
+```php
+namespace MyVendor\MyPlugin\Components;
+
+use Filament\Forms\Components\Field;
+
+class CustomInput extends Field
+{
+    protected string $view = 'my-plugin::components.custom-input';
+
+    public function withIcon(string $icon): static
+    {
+        $this->icon = $icon;
+        return $this;
+    }
+}
+```
+
+### Creating a Widget
+
+```php
+namespace MyVendor\MyPlugin\Widgets;
+
+use Filament\Widgets\Widget;
+
+class StatsWidget extends Widget
+{
+    protected static string $view = 'my-plugin::widgets.stats-widget';
+
+    public function getStats(): array
+    {
+        return [
+            'Total Users' => 1234,
+            'Active Sessions' => 56,
+        ];
+    }
+}
+```
+
+## Configuration
+
+The plugin system can be configured via `config/laravilt/plugins.php`:
+
+```php
+return [
+    'discovery' => [
+        'enabled' => true,
+        'cache' => true,
+    ],
+
+    'paths' => [
+        base_path('packages'),
+    ],
+
+    'defaults' => [
+        'vendor' => 'laravilt',
+        'author' => 'Laravilt Team',
+        'email' => 'hello@laravilt.com',
+    ],
+];
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](../.github/CONTRIBUTING.md) for details.
+
+## License
+
+MIT License. See [LICENSE.md](../LICENSE.md) for details.
+</file>
+
+<file path="src/Commands/MakePluginCommand.php">
+<?php
+
+namespace Laravilt\Plugins\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Str;
+use Laravilt\Plugins\Services\PluginGenerator;
+
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\text;
+
+class MakePluginCommand extends Command
+{
+    protected $signature = 'laravilt:plugin
+                            {name? : The name of the plugin}
+                            {--vendor= : The vendor name}
+                            {--path= : The base path where the plugin will be created}
+                            {--no-components : Skip creating sample components}
+                            {--no-assets : Skip asset scaffolding}';
+
+    protected $description = 'Create a new Laravilt plugin package';
+
+    public function __construct(
+        protected Filesystem $files,
+        protected PluginGenerator $generator
+    ) {
+        parent::__construct();
+    }
+
+    public function handle(): int
+    {
+        // Get plugin name
+        $name = $this->getPluginName();
+        if (! $name) {
+            $this->error('Plugin name is required.');
+
+            return self::FAILURE;
+        }
+
+        // Get vendor name
+        $vendor = $this->getVendorName();
+
+        // Prepare configuration
+        $basePath = $this->option('path') ?: base_path('packages/'.Str::lower($vendor).'/'.Str::kebab($name));
+
+        // Check if directory exists
+        if ($this->files->exists($basePath)) {
+            $this->error("Plugin directory already exists: {$basePath}");
+
+            return self::FAILURE;
+        }
+
+        // Confirm creation
+        if (! $this->confirmCreation($name, $basePath)) {
+            $this->info('Plugin creation cancelled.');
+
+            return self::SUCCESS;
+        }
+
+        $this->info("Creating plugin: {$name}...");
+
+        // Generate the plugin using the service
+        $config = $this->generator->prepareConfig($name, $vendor, $basePath);
+
+        $this->generator->createDirectoryStructure($basePath);
+        $this->generator->generateCoreFiles($config);
+        $this->generator->generateGitHubFiles($config);
+        $this->generator->generateTestingFiles($config);
+        $this->generator->generateDocumentationFiles($config);
+
+        if (! $this->option('no-components')) {
+            $this->generator->generateSampleComponents($config);
+        }
+
+        if (! $this->option('no-assets')) {
+            $this->generator->generateAssetFiles($config);
+        }
+
+        // Display success message
+        $this->displaySuccessMessage($basePath);
+
+        return self::SUCCESS;
+    }
+
+    protected function getPluginName(): ?string
+    {
+        if ($this->argument('name')) {
+            return $this->argument('name');
+        }
+
+        if ($this->option('no-interaction')) {
+            return null;
+        }
+
+        return text(
+            label: 'Plugin name',
+            placeholder: 'E.g., BlogExtensions',
+            required: true
+        );
+    }
+
+    protected function getVendorName(): string
+    {
+        if ($this->option('vendor')) {
+            return $this->option('vendor');
+        }
+
+        if ($this->option('no-interaction')) {
+            return config('laravilt-plugins.defaults.vendor', 'laravilt');
+        }
+
+        return text(
+            label: 'Vendor name',
+            default: config('laravilt-plugins.defaults.vendor', 'laravilt'),
+            required: true
+        );
+    }
+
+    protected function confirmCreation(string $name, string $basePath): bool
+    {
+        if ($this->option('no-interaction')) {
+            return true;
+        }
+
+        return confirm(
+            label: "Create plugin '".Str::studly($name)."' in {$basePath}?",
+            default: true
+        );
+    }
+
+    protected function displaySuccessMessage(string $basePath): void
+    {
+        $this->newLine();
+        $this->info('✅ Plugin created successfully!');
+        $this->newLine();
+
+        $this->info('📦 Next steps:');
+        $this->line("  1. cd {$basePath}");
+        $this->line('  2. composer install');
+        $this->line('  3. npm install && npm run build');
+        $this->line('  4. Register the plugin in your panel provider');
+        $this->newLine();
+
+        $this->info('📖 Plugin location: '.$basePath);
+    }
+}
+</file>
+
+<file path="src/Contracts/Plugin.php">
+<?php
+
+namespace Laravilt\Plugins\Contracts;
+
+use Filament\Panel;
+
+interface Plugin extends \Filament\Contracts\Plugin
+{
+    /**
+     * Get the plugin ID.
+     */
+    public function getId(): string;
+
+    /**
+     * Get the plugin name.
+     */
+    public function getName(): string;
+
+    /**
+     * Get the plugin version.
+     */
+    public function getVersion(): string;
+
+    /**
+     * Get the plugin description.
+     */
+    public function getDescription(): string;
+
+    /**
+     * Get the plugin author.
+     */
+    public function getAuthor(): string;
+
+    /**
+     * Register the plugin with a panel.
+     */
+    public function register(Panel $panel): void;
+
+    /**
+     * Boot the plugin for a panel.
+     */
+    public function boot(Panel $panel): void;
+
+    /**
+     * Check if the plugin is enabled.
+     */
+    public function isEnabled(): bool;
+
+    /**
+     * Enable the plugin.
+     */
+    public function enable(): static;
+
+    /**
+     * Disable the plugin.
+     */
+    public function disable(): static;
+
+    /**
+     * Get plugin dependencies.
+     *
+     * @return array<string>
+     */
+    public function getDependencies(): array;
+
+    /**
+     * Check if dependencies are satisfied.
+     */
+    public function dependenciesSatisfied(): bool;
+}
+</file>
+
+<file path="src/Contracts/PluginManager.php">
+<?php
+
+namespace Laravilt\Plugins\Contracts;
+
+use Illuminate\Support\Collection;
+
+interface PluginManager
+{
+    /**
+     * Register a plugin.
+     */
+    public function register(Plugin $plugin): void;
+
+    /**
+     * Boot a plugin by ID.
+     */
+    public function boot(string $id): void;
+
+    /**
+     * Boot all plugins.
+     */
+    public function bootAll(): void;
+
+    /**
+     * Get a plugin by ID.
+     */
+    public function get(string $id): Plugin;
+
+    /**
+     * Check if a plugin is registered.
+     */
+    public function has(string $id): bool;
+
+    /**
+     * Get all plugins.
+     *
+     * @return Collection<string, Plugin>
+     */
+    public function all(): Collection;
+
+    /**
+     * Get enabled plugins.
+     *
+     * @return Collection<string, Plugin>
+     */
+    public function enabled(): Collection;
+
+    /**
+     * Discover plugins.
+     */
+    public function discover(): void;
+}
+</file>
+
+<file path="src/Support/PluginDiscovery.php">
+<?php
+
+namespace Laravilt\Plugins\Support;
+
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Collection;
+use Laravilt\Plugins\Contracts\Plugin;
+
+class PluginDiscovery
+{
+    protected Application $app;
+
+    public function __construct(Application $app)
+    {
+        $this->app = $app;
+    }
+
+    /**
+     * Discover all plugins.
+     *
+     * @return Collection<Plugin>
+     */
+    public function discover(): Collection
+    {
+        $plugins = collect();
+
+        // Check installed packages for Laravilt plugins
+        $installedPackages = $this->getInstalledPackages();
+
+        foreach ($installedPackages as $package) {
+            if ($this->isLaraviltPlugin($package)) {
+                $plugin = $this->loadPlugin($package);
+
+                if ($plugin) {
+                    $plugins->push($plugin);
+                }
+            }
+        }
+
+        return $plugins;
+    }
+
+    /**
+     * Get installed packages from composer.lock.
+     */
+    protected function getInstalledPackages(): Collection
+    {
+        $composerLockPath = base_path('composer.lock');
+
+        if (! file_exists($composerLockPath)) {
+            return collect();
+        }
+
+        $composerLock = json_decode(file_get_contents($composerLockPath), true);
+
+        return collect($composerLock['packages'] ?? []);
+    }
+
+    /**
+     * Check if a package is a Laravilt plugin.
+     */
+    protected function isLaraviltPlugin(array $package): bool
+    {
+        $extra = $package['extra'] ?? [];
+        $laravel = $extra['laravel'] ?? [];
+
+        if (isset($laravel['providers'])) {
+            foreach ($laravel['providers'] as $provider) {
+                if ($this->isPluginProvider($provider)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if a provider is a plugin provider.
+     */
+    protected function isPluginProvider(string $provider): bool
+    {
+        if (! class_exists($provider)) {
+            return false;
+        }
+
+        $interfaces = class_implements($provider);
+
+        return is_array($interfaces) && in_array(Plugin::class, $interfaces);
+    }
+
+    /**
+     * Load a plugin from a package.
+     */
+    protected function loadPlugin(array $package): ?Plugin
+    {
+        $extra = $package['extra'] ?? [];
+        $laravel = $extra['laravel'] ?? [];
+        $providers = $laravel['providers'] ?? [];
+
+        foreach ($providers as $provider) {
+            if ($this->isPluginProvider($provider)) {
+                return $this->app->make($provider);
+            }
+        }
+
+        return null;
+    }
+}
+</file>
+
+<file path="src/Support/PluginManager.php">
+<?php
+
+namespace Laravilt\Plugins\Support;
+
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Collection;
+use Laravilt\Plugins\Contracts\Plugin;
+use Laravilt\Plugins\Contracts\PluginManager as PluginManagerContract;
+
+class PluginManager implements PluginManagerContract
+{
+    protected Application $app;
+
+    /**
+     * Registered plugins.
+     *
+     * @var Collection<string, Plugin>
+     */
+    protected Collection $plugins;
+
+    /**
+     * Booted plugins.
+     *
+     * @var Collection<string>
+     */
+    protected Collection $booted;
+
+    public function __construct(Application $app)
+    {
+        $this->app = $app;
+        $this->plugins = collect();
+        $this->booted = collect();
+    }
+
+    /**
+     * Register a plugin.
+     */
+    public function register(Plugin $plugin): void
+    {
+        $id = $plugin->getId();
+
+        if ($this->plugins->has($id)) {
+            throw new \RuntimeException("Plugin '{$id}' is already registered.");
+        }
+
+        // Check dependencies
+        if (! $plugin->dependenciesSatisfied()) {
+            $dependencies = implode(', ', $plugin->getDependencies());
+            throw new \RuntimeException(
+                "Plugin '{$id}' dependencies not satisfied: {$dependencies}"
+            );
+        }
+
+        $this->plugins->put($id, $plugin);
+    }
+
+    /**
+     * Boot a plugin.
+     */
+    public function boot(string $id): void
+    {
+        if ($this->booted->contains($id)) {
+            return;
+        }
+
+        $plugin = $this->get($id);
+
+        if (! $plugin->isEnabled()) {
+            return;
+        }
+
+        // Boot dependencies first
+        foreach ($plugin->getDependencies() as $dependency) {
+            $this->boot($dependency);
+        }
+
+        $this->booted->push($id);
+    }
+
+    /**
+     * Boot all plugins.
+     */
+    public function bootAll(): void
+    {
+        foreach ($this->plugins->keys() as $id) {
+            $this->boot($id);
+        }
+    }
+
+    /**
+     * Get a plugin by ID.
+     */
+    public function get(string $id): Plugin
+    {
+        if (! $this->has($id)) {
+            throw new \RuntimeException("Plugin '{$id}' is not registered.");
+        }
+
+        return $this->plugins->get($id);
+    }
+
+    /**
+     * Check if a plugin is registered.
+     */
+    public function has(string $id): bool
+    {
+        return $this->plugins->has($id);
+    }
+
+    /**
+     * Get all plugins.
+     *
+     * @return Collection<string, Plugin>
+     */
+    public function all(): Collection
+    {
+        return $this->plugins;
+    }
+
+    /**
+     * Get enabled plugins.
+     *
+     * @return Collection<string, Plugin>
+     */
+    public function enabled(): Collection
+    {
+        return $this->plugins->filter(fn (Plugin $plugin) => $plugin->isEnabled());
+    }
+
+    /**
+     * Discover plugins.
+     */
+    public function discover(): void
+    {
+        $discovery = new PluginDiscovery($this->app);
+        $plugins = $discovery->discover();
+
+        foreach ($plugins as $plugin) {
+            $this->register($plugin);
+        }
+    }
+
+    /**
+     * Get plugin manifest.
+     */
+    public function getManifest(): PluginManifest
+    {
+        return new PluginManifest($this->plugins);
+    }
+}
+</file>
+
+<file path="src/Support/PluginManifest.php">
+<?php
+
+namespace Laravilt\Plugins\Support;
+
+use Illuminate\Support\Collection;
+use Laravilt\Plugins\Contracts\Plugin;
+
+class PluginManifest
+{
+    /**
+     * @var Collection<string, Plugin>
+     */
+    protected Collection $plugins;
+
+    /**
+     * @param  Collection<string, Plugin>  $plugins
+     */
+    public function __construct(Collection $plugins)
+    {
+        $this->plugins = $plugins;
+    }
+
+    /**
+     * Get manifest as array.
+     */
+    public function toArray(): array
+    {
+        return $this->plugins->map(function (Plugin $plugin) {
+            return [
+                'id' => $plugin->getId(),
+                'name' => $plugin->getName(),
+                'version' => $plugin->getVersion(),
+                'description' => $plugin->getDescription(),
+                'author' => $plugin->getAuthor(),
+                'enabled' => $plugin->isEnabled(),
+                'dependencies' => $plugin->getDependencies(),
+            ];
+        })->all();
+    }
+
+    /**
+     * Get manifest as JSON.
+     */
+    public function toJson(): string
+    {
+        return json_encode($this->toArray(), JSON_PRETTY_PRINT);
+    }
+}
+</file>
+
+<file path="src/PluginsServiceProvider.php">
+<?php
+
+namespace Laravilt\Plugins;
+
+use Illuminate\Support\ServiceProvider;
+use Laravilt\Plugins\Contracts\PluginManager as PluginManagerContract;
+use Laravilt\Plugins\Support\PluginManager;
+
+class PluginsServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/laravilt-plugins.php',
+            'laravilt-plugins'
+        );
+
+        $this->app->singleton(PluginManagerContract::class, function ($app) {
+            return new PluginManager($app);
+        });
+
+        $this->app->alias(PluginManagerContract::class, 'laravilt.plugins');
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                Commands\MakePluginCommand::class,
+                Commands\MakePluginModelCommand::class,
+                Commands\MakePluginMigrationCommand::class,
+                Commands\MakePluginResourceCommand::class,
+                Commands\MakePluginWidgetCommand::class,
+                Commands\MakePluginPageCommand::class,
+            ]);
+
+            $this->publishes([
+                __DIR__.'/../config/laravilt-plugins.php' => config_path('laravilt-plugins.php'),
+            ], 'laravilt-plugins-config');
+        }
+
+        // Auto-discover and register plugins
+        $this->discoverPlugins();
+    }
+
+    /**
+     * Discover and register plugins.
+     */
+    protected function discoverPlugins(): void
+    {
+        $manager = $this->app->make(PluginManagerContract::class);
+
+        $manager->discover();
+        $manager->bootAll();
+    }
+}
+</file>
+
+<file path="tests/Feature/MakePluginCommandTest.php">
+<?php
+
+use Illuminate\Support\Facades\File;
+
+it('can generate a plugin with default options', function () {
+    $pluginPath = base_path('packages/laravilt/test-plugin');
+
+    // Clean up if exists
+    if (File::exists($pluginPath)) {
+        File::deleteDirectory($pluginPath);
+    }
+
+    $this->artisan('laravilt:plugin', [
+        'name' => 'TestPlugin',
+        '--vendor' => 'laravilt',
+        '--no-interaction' => true,
+    ])
+        ->assertSuccessful();
+
+    expect($pluginPath)->toBeDirectory();
+    expect($pluginPath.'/composer.json')->toBeFile();
+    expect($pluginPath.'/src/TestPluginPlugin.php')->toBeFile();
+    expect($pluginPath.'/.github/workflows/tests.yml')->toBeFile();
+    expect($pluginPath.'/phpunit.xml')->toBeFile();
+    expect($pluginPath.'/pint.json')->toBeFile();
+
+    // Clean up
+    File::deleteDirectory($pluginPath);
+});
+
+it('creates config file with laravilt prefix', function () {
+    $pluginPath = base_path('packages/laravilt/test-plugin');
+
+    // Clean up if exists
+    if (File::exists($pluginPath)) {
+        File::deleteDirectory($pluginPath);
+    }
+
+    $this->artisan('laravilt:plugin', [
+        'name' => 'TestPlugin',
+        '--vendor' => 'laravilt',
+        '--no-interaction' => true,
+    ]);
+
+    expect($pluginPath.'/config/laravilt-test-plugin.php')->toBeFile();
+
+    $config = file_get_contents($pluginPath.'/config/laravilt-test-plugin.php');
+    expect($config)->toContain('LARAVILT_TEST_PLUGIN_ENABLED');
+
+    // Clean up
+    File::deleteDirectory($pluginPath);
+});
+
+it('can skip components generation', function () {
+    $pluginPath = base_path('packages/laravilt/test-plugin');
+
+    // Clean up if exists
+    if (File::exists($pluginPath)) {
+        File::deleteDirectory($pluginPath);
+    }
+
+    $this->artisan('laravilt:plugin', [
+        'name' => 'TestPlugin',
+        '--vendor' => 'laravilt',
+        '--no-components' => true,
+        '--no-interaction' => true,
+    ]);
+
+    expect($pluginPath.'/src/Components')->toBeDirectory();
+    expect($pluginPath.'/src/Components/CustomInput.php')->not->toBeFile();
+
+    // Clean up
+    File::deleteDirectory($pluginPath);
+});
+</file>
+
+<file path="tests/Unit/PluginManagerTest.php">
+<?php
+
+use Illuminate\Support\Collection;
+use Laravilt\Plugins\Contracts\PluginManager as PluginManagerContract;
+use Laravilt\Plugins\Support\PluginManager;
+
+beforeEach(function () {
+    $this->manager = app(PluginManagerContract::class);
+});
+
+it('can instantiate plugin manager', function () {
+    expect($this->manager)->toBeInstanceOf(PluginManager::class);
+});
+
+it('returns empty collection initially', function () {
+    expect($this->manager->all())->toBeInstanceOf(Collection::class);
+    expect($this->manager->all())->toBeEmpty();
+});
+
+it('can check if plugin exists', function () {
+    expect($this->manager->has('non-existent-plugin'))->toBeFalse();
+});
+
+it('returns enabled plugins collection', function () {
+    $enabled = $this->manager->enabled();
+
+    expect($enabled)->toBeInstanceOf(Collection::class);
+});
+</file>
+
+<file path="tests/Pest.php">
+<?php
+
+use Laravilt\Plugins\Tests\TestCase;
+
+uses(TestCase::class)->in('Feature', 'Unit');
+</file>
+
+<file path="tests/TestCase.php">
+<?php
+
+namespace Laravilt\Plugins\Tests;
+
+use Laravilt\Plugins\PluginsServiceProvider;
+use Orchestra\Testbench\TestCase as Orchestra;
+
+class TestCase extends Orchestra
+{
+    protected function getPackageProviders($app): array
+    {
+        return [
+            PluginsServiceProvider::class,
+        ];
+    }
+
+    protected function getEnvironmentSetUp($app): void
+    {
+        config()->set('database.default', 'testing');
+    }
+}
+</file>
+
+<file path="CHANGELOG.md">
+# Changelog
+
+All notable changes to `Laravilt Plugins` will be documented in this file.
+
+## 1.0.0 - TBD
+
+### Added
+- Initial release
+- Plugin generator command (`laravilt:plugin`)
+- Plugin manager and discovery system
+- FilamentPHP compatibility
+- Professional package structure generation
+- GitHub Actions workflows
+- Testing configuration (PHPUnit, Pest, PHPStan, Pint)
+- Laravel Prompts integration
+- i18n support (English + Arabic)
+- Sample components and widgets generation
+- Asset build configuration (Vite, Vue, Tailwind)
+- Documentation structure
+- Laravel Workbench setup
+
+### Features
+- Auto-discovery of plugins from installed packages
+- Plugin registration and lifecycle management
+- Configurable plugin system
+- Professional naming conventions
+- Complete testing infrastructure
+- Code quality tools integration
+</file>
+
+<file path="CODE_OF_CONDUCT.md">
+# Code of Conduct
+
+## Our Pledge
+
+We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+
+## Our Standards
+
+Examples of behavior that contributes to a positive environment for our community include:
+
+- Being respectful of differing opinions, viewpoints, and experiences
+- Giving and gracefully accepting constructive feedback
+- Accepting responsibility and apologizing to those affected by our mistakes
+- Focusing on what is best not just for us as individuals, but for the overall community
+- Showing empathy towards other community members
+
+Examples of unacceptable behavior include:
+
+- The use of sexualized language or imagery, and sexual attention or advances of any kind
+- Trolling, insulting or derogatory comments, and personal or political attacks
+- Public or private harassment
+- Publishing others' private information without their explicit permission
+- Other conduct which could reasonably be considered inappropriate in a professional setting
+
+## Enforcement Responsibilities
+
+Community leaders are responsible for clarifying and enforcing our standards of acceptable behavior and will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
+
+## Scope
+
+This Code of Conduct applies within all community spaces, and also applies when an individual is officially representing the community in public spaces.
+
+## Enforcement
+
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at conduct@laravilt.com.
+
+All complaints will be reviewed and investigated promptly and fairly.
+
+All community leaders are obligated to respect the privacy and security of the reporter of any incident.
+
+## Attribution
+
+This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 2.1, available at [https://www.contributor-covenant.org/version/2/1/code_of_conduct.html][v2.1].
+
+[homepage]: https://www.contributor-covenant.org
+[v2.1]: https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
+</file>
+
+<file path="composer.json">
+{
+    "name": "laravilt/plugins",
+    "description": "Complete plugin system with generator, management, and FilamentPHP compatibility for Laravilt",
+    "type": "library",
+    "keywords": [
+        "laravilt",
+        "laravel",
+        "plugins"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Fady Mondy",
+            "email": "info@3x1.io"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "illuminate/console": "^11.0|^12.0",
+        "illuminate/filesystem": "^11.0|^12.0",
+        "spatie/laravel-package-tools": "^1.14"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "laravel/pint": "^1.13",
+        "phpstan/phpstan": "^1.10",
+        "nunomaduro/larastan": "^2.0"
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage",
+        "format": "vendor/bin/pint",
+        "analyse": "vendor/bin/phpstan analyse"
+    },
+    "autoload": {
+        "psr-4": {
+            "Laravilt\\Plugins\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Laravilt\\Plugins\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Laravilt\\Plugins\\PluginsServiceProvider"
+            ],
+            "aliases": {
+                "LaraviltPlugins": "Laravilt\\Plugins\\Facades\\LaraviltPlugins"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
+</file>
+
+<file path="LICENSE.md">
+# The MIT License (MIT)
+
+Copyright (c) Laravilt <hello@laravilt.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</file>
+
+<file path="phpstan.neon">
+parameters:
+    level: 5
+    paths:
+        - src
+    tmpDir: build/phpstan
+    excludePaths:
+        - src/Contracts/Plugin.php
+        - src/BasePlugin.php
+        - src/PluginProvider.php
+</file>
+
+<file path="phpunit.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Laravilt Plugins Test Suite">
+            <directory suffix="Test.php">./tests</directory>
+        </testsuite>
+    </testsuites>
+    <coverage>
+        <include>
+            <directory suffix=".php">./src</directory>
+        </include>
+    </coverage>
+</phpunit>
+</file>
+
+<file path="pint.json">
+{
+    "preset": "laravel",
+    "rules": {
+        "simplified_null_return": true,
+        "braces": false,
+        "new_with_braces": {
+            "anonymous_class": false,
+            "named_class": false
+        }
+    }
+}
+</file>
+
+<file path="README.md">
+# Laravilt Plugins Package
+
+Complete plugin system with generator, management, and FilamentPHP compatibility for Laravilt.
+
+## Features
+
+- **Plugin Generator**: `php artisan laravilt:make-plugin` command to scaffold new plugins
+- **FilamentPHP Compatible**: Implements FilamentPHP plugin provider pattern
+- **Auto-Discovery**: Automatically discovers and registers plugins from installed packages
+- **Asset Management**: Built-in Vite configuration for plugin assets
+- **Testing Utilities**: Base test case for plugin development
+
+## Installation
+
+```bash
+composer require laravilt/plugins
+```
+
+The package will be auto-discovered by Laravel.
+
+## Usage
+
+### Creating a New Plugin
+
+```bash
+php artisan laravilt:make-plugin BlogExtensions --vendor=mycompany
+```
+
+Options:
+- `--vendor`: Vendor name (default: laravilt)
+- `--path`: Custom output path
+- `--no-components`: Skip creating sample components
+- `--no-assets`: Skip asset scaffolding
+
+### Generated Plugin Structure
+
+```
+packages/mycompany/blog-extensions/
+├── src/
+│   ├── BlogExtensionsPluginServiceProvider.php
+│   ├── Components/
+│   │   └── CustomInput.php
+│   └── Widgets/
+│       └── StatsWidget.php
+├── resources/
+│   ├── views/
+│   ├── js/
+│   └── css/
+├── config/
+├── tests/
+├── composer.json
+├── package.json
+└── README.md
+```
+
+## Configuration
+
+Publish the configuration:
+
+```bash
+php artisan vendor:publish --tag=laravilt-plugins-config
+```
+
+## License
+
+MIT
+</file>
+
+<file path="SECURITY.md">
+# Security Policy
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability within Laravilt Plugins, please send an email to security@laravilt.com.
+
+All security vulnerabilities will be promptly addressed.
+
+Please do not publicly disclose the issue until it has been addressed by the team.
+
+## Supported Versions
+
+We release patches for security vulnerabilities for the following versions:
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.x     | :white_check_mark: |
+
+## Security Update Process
+
+1. The security team will acknowledge receipt of your vulnerability report within 48 hours
+2. The team will investigate and confirm the issue
+3. A fix will be developed and tested
+4. A security release will be published
+5. The vulnerability will be publicly disclosed after users have had time to update
+</file>
+
+<file path="testbench.yaml">
+providers:
+  - Laravilt\Plugins\PluginsServiceProvider
+
+workbench:
+  start: '/'
+  install: true
+  welcome: false
+</file>
+
+</files>

@@ -13,7 +13,7 @@ class PluginManifest
     protected Collection $plugins;
 
     /**
-     * @param Collection<string, Plugin> $plugins
+     * @param  Collection<string, Plugin>  $plugins
      */
     public function __construct(Collection $plugins)
     {
