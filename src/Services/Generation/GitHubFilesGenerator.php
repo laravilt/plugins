@@ -48,20 +48,49 @@ class GitHubFilesGenerator
     {
         $content = <<<'YAML'
 name: Tests
+
 on: [push, pull_request]
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: true
       matrix:
-        php: [8.2, 8.3]
+        os: [ubuntu-latest]
+        php: [8.2, 8.3, 8.4]
+        laravel: [11.*]
+        dependency-version: [prefer-stable]
+        include:
+          - laravel: 11.*
+            testbench: ^9.0
+          - laravel: 12.*
+            testbench: ^10.0
+            php: 8.3
+          - laravel: 12.*
+            testbench: ^10.0
+            php: 8.4
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.dependency-version }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-      - run: composer install
-      - run: vendor/bin/pest
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction
+
+      - name: Execute tests
+        run: vendor/bin/pest
 YAML;
         $this->processor->files->put($basePath.'/.github/workflows/tests.yml', $content);
     }

@@ -24,7 +24,7 @@ return [
     |
     */
     'paths' => [
-        base_path('packages'),
+        base_path('vendor'),
     ],
 
     /*
