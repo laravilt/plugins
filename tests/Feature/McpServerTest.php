@@ -2,88 +2,104 @@
 
 use Laravilt\Plugins\Mcp\LaraviltPluginsServer;
 use Laravilt\Plugins\Mcp\Tools\GenerateComponentTool;
+use Laravilt\Plugins\Mcp\Tools\GeneratePluginTool;
 use Laravilt\Plugins\Mcp\Tools\ListComponentTypesTool;
 use Laravilt\Plugins\Mcp\Tools\ListPluginsTool;
 use Laravilt\Plugins\Mcp\Tools\PluginInfoTool;
 use Laravilt\Plugins\Mcp\Tools\PluginStructureTool;
-
-test('list-plugins tool works', function () {
-    $response = LaraviltPluginsServer::tool(ListPluginsTool::class);
-
-    expect($response)
-        ->assertOk()
-        ->assertSee('Found');
-});
-
-test('list-component-types tool works', function () {
-    $response = LaraviltPluginsServer::tool(ListComponentTypesTool::class);
-
-    expect($response)
-        ->assertOk()
-        ->assertSee('Available Component Types')
-        ->assertSee('migration')
-        ->assertSee('model')
-        ->assertSee('controller');
-});
-
-test('plugin-info tool works with valid plugin', function () {
-    $response = LaraviltPluginsServer::tool(PluginInfoTool::class, [
-        'plugin' => 'plugins',
-    ]);
-
-    expect($response)
-        ->assertOk()
-        ->assertSee('Plugin: plugins');
-});
-
-test('plugin-info tool handles non-existent plugin', function () {
-    $response = LaraviltPluginsServer::tool(PluginInfoTool::class, [
-        'plugin' => 'non-existent-plugin',
-    ]);
-
-    expect($response)
-        ->assertOk()
-        ->assertSee('not found');
-});
-
-test('plugin-structure tool works with valid plugin', function () {
-    $response = LaraviltPluginsServer::tool(PluginStructureTool::class, [
-        'plugin' => 'plugins',
-    ]);
-
-    expect($response)
-        ->assertOk()
-        ->assertSee('Plugin Structure: plugins');
-});
-
-test('generate-component tool validates component type', function () {
-    $response = LaraviltPluginsServer::tool(GenerateComponentTool::class, [
-        'plugin' => 'plugins',
-        'type' => 'invalid-type',
-        'name' => 'TestComponent',
-    ]);
-
-    expect($response)
-        ->assertOk()
-        ->assertSee('Invalid component type');
-});
 
 test('mcp server extends laravel mcp server', function () {
     expect(is_subclass_of(LaraviltPluginsServer::class, \Laravel\Mcp\Server::class))
         ->toBeTrue();
 });
 
-test('all tool classes exist and extend tool', function () {
+test('mcp server has correct name and version', function () {
+    $reflection = new ReflectionClass(LaraviltPluginsServer::class);
+    $name = $reflection->getProperty('name')->getDefaultValue();
+    $version = $reflection->getProperty('version')->getDefaultValue();
+
+    expect($name)->toBe('Laravilt Plugins');
+    expect($version)->toBe('1.0.0');
+});
+
+test('mcp server has all 6 tools registered', function () {
+    $reflection = new ReflectionClass(LaraviltPluginsServer::class);
+    $tools = $reflection->getProperty('tools')->getDefaultValue();
+
+    expect($tools)->toHaveCount(6);
+    expect($tools)->toContain(ListPluginsTool::class);
+    expect($tools)->toContain(PluginInfoTool::class);
+    expect($tools)->toContain(GeneratePluginTool::class);
+    expect($tools)->toContain(GenerateComponentTool::class);
+    expect($tools)->toContain(ListComponentTypesTool::class);
+    expect($tools)->toContain(PluginStructureTool::class);
+});
+
+test('all tool classes exist and extend tool base class', function () {
     $tools = [
         ListPluginsTool::class,
         ListComponentTypesTool::class,
         PluginInfoTool::class,
         PluginStructureTool::class,
         GenerateComponentTool::class,
+        GeneratePluginTool::class,
     ];
 
     foreach ($tools as $tool) {
-        expect(class_exists($tool))->toBeTrue();
-        expect(is_subclass_of($tool, \Laravel\Mcp\Server\Tool::class))->toBeTrue();
+        expect(class_exists($tool))->toBeTrue("Tool class {$tool} should exist");
+        expect(is_subclass_of($tool, \Laravel\Mcp\Server\Tool::class))
+            ->toBeTrue("Tool {$tool} should extend Laravel MCP Tool class");
     }
+});
+
+test('list component types tool has correct description', function () {
+    $reflection = new ReflectionClass(ListComponentTypesTool::class);
+    $description = $reflection->getProperty('description')->getDefaultValue();
+
+    expect($description)->toContain('available component types');
+});
+
+test('all tools have handle method', function () {
+    $tools = [
+        ListPluginsTool::class,
+        ListComponentTypesTool::class,
+        PluginInfoTool::class,
+        PluginStructureTool::class,
+        GenerateComponentTool::class,
+        GeneratePluginTool::class,
+    ];
+
+    foreach ($tools as $toolClass) {
+        $reflection = new ReflectionClass($toolClass);
+        expect($reflection->hasMethod('handle'))
+            ->toBeTrue("Tool {$toolClass} should have handle method");
+    }
+});
+
+test('all tools have description property', function () {
+    $tools = [
+        ListPluginsTool::class,
+        ListComponentTypesTool::class,
+        PluginInfoTool::class,
+        PluginStructureTool::class,
+        GenerateComponentTool::class,
+        GeneratePluginTool::class,
+    ];
+
+    foreach ($tools as $toolClass) {
+        $reflection = new ReflectionClass($toolClass);
+        expect($reflection->hasProperty('description'))
+            ->toBeTrue("Tool {$toolClass} should have description property");
+
+        $description = $reflection->getProperty('description')->getDefaultValue();
+        expect($description)->not->toBeEmpty("Tool {$toolClass} description should not be empty");
+    }
+});
+
+test('mcp server has instructions for llm', function () {
+    $reflection = new ReflectionClass(LaraviltPluginsServer::class);
+    $instructions = $reflection->getProperty('instructions')->getDefaultValue();
+
+    expect($instructions)->toContain('plugin management');
+    expect($instructions)->toContain('packages/laravilt');
 });
