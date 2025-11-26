@@ -1,0 +1,29 @@
+<?php
+
+namespace {{ namespace }}\Tests;
+
+{{ use_refresh_database }}use Orchestra\Testbench\TestCase as Orchestra;
+
+class TestCase extends Orchestra
+{
+{{ use_refresh_database_trait }}
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+{{ load_migrations }}        // Additional setup if needed
+    }
+
+    protected function getPackageProviders($app): array
+    {
+        return [
+            \{{ namespace }}\{{ service_provider }}::class,
+        ];
+    }
+
+    protected function getEnvironmentSetUp($app): void
+    {
+        // Setup environment for testing
+        config()->set('database.default', 'testing');
+{{ database_config }}    }
+}

@@ -1,6 +1,89 @@
 # Laravilt Plugins Documentation
 
-Complete plugin system with generator, management, and FilamentPHP compatibility for Laravilt.
+Complete plugin system with generator, management, and FilamentPHP v4 compatibility for Laravilt.ipsum
+
+## Table of Contents
+
+1. [Getting Started](getting-started.md)
+2. [Architecture](architecture.md)
+3. [Plugin Generation](plugin-generation.md)
+4. [Component Generators](component-generators.md)
+5. [Factory Pattern](factory-pattern.md)
+6. [Features System](features-system.md)
+7. [MCP Server Integration](mcp-server.md)
+8. [API Reference](api-reference.md)
+
+## Overview
+
+Laravilt Plugins is a comprehensive plugin management system that provides:
+
+- **Plugin Generator**: Create complete Laravel packages with service providers, configuration, and FilamentPHP integration
+- **Component Generators**: Generate migrations, models, controllers, commands, and more within plugins
+- **Factory Pattern Architecture**: Extensible feature system for plugin generation
+- **MCP Server**: AI agent integration for plugin management
+- **GitHub Integration**: Automated workflows, issue templates, and sponsorship
+- **Professional Assets**: Cover images, documentation, and coding standards
+
+## Quick Start
+
+```bash
+# Generate a new plugin
+php artisan laravilt:plugin BlogExtensions
+
+# Generate components within a plugin
+php artisan laravilt:make blog-extensions model Post
+php artisan laravilt:make blog-extensions controller PostController
+php artisan laravilt:make blog-extensions migration CreatePostsTable
+
+# Install MCP server for AI agents
+php artisan laravilt:install-mcp
+```
+
+## Key Features
+
+### 🎨 Plugin Generator
+- Complete package structure
+- Service provider with auto-discovery
+- Configuration files
+- Optional migrations, views, routes, assets
+
+### 🧩 Component Generators
+13 component types:
+- Migration, Model, Controller, Command
+- Job, Event, Listener, Notification
+- Seeder, Factory, Test
+- Language, Route
+
+### 🏭 Factory Pattern
+- Extensible architecture
+- Priority-based execution
+- Feature registration system
+- Stub-based generation
+
+### 🤖 MCP Server
+- AI agent integration
+- Plugin management tools
+- Component generation
+- Structure inspection
+
+### 🎨 Professional Assets
+- Cover images (1200x630px)
+- Dark theme with branding
+- README integration
+- Social media ready
+
+### ⚙️ GitHub Integration
+- Automated workflows
+- Issue templates
+- Dependabot configuration
+- FUNDING.yml support
+
+## System Requirements
+
+- PHP 8.3+
+- Laravel 12+
+- FilamentPHP v4 (for plugin features)
+- Composer 2+
 
 ## Installation
 
@@ -8,193 +91,25 @@ Complete plugin system with generator, management, and FilamentPHP compatibility
 composer require laravilt/plugins
 ```
 
-The package will be auto-discovered by Laravel.
-
-## Usage
-
-### Creating a New Plugin
-
-Generate a new plugin with complete professional structure:
-
-```bash
-php artisan laravilt:plugin BlogExtensions --vendor=mycompany
-```
-
-### Options
-
-- `--vendor`: Vendor name (default: laravilt)
-- `--path`: Custom output path
-- `--no-components`: Skip creating sample components
-- `--no-assets`: Skip asset scaffolding
-
-### Generated Structure
-
-The command generates a complete professional package with:
-
-- GitHub Actions workflows (tests, code styling, dependabot)
-- Issue templates
-- Testing configuration (PHPUnit, Pest, PHPStan, Pint)
-- Documentation structure
-- Laravel Workbench setup
-- Sample components and widgets
-- Asset build configuration (Vite, Vue, Tailwind)
-- i18n support (English + Arabic)
-
-## Plugin Development
-
-### Service Provider
-
-All generated plugins extend `PackageServiceProvider` and implement `Filament\Contracts\Plugin`:
-
-```php
-class MyPluginServiceProvider extends PackageServiceProvider implements Plugin
-{
-    public static string $name = 'my-plugin';
-
-    public function configurePackage(Package $package): void
-    {
-        $package
-            ->name('laravilt-my-plugin')
-            ->hasConfigFile()
-            ->hasViews()
-            ->hasTranslations()
-            ->hasMigrations([])
-            ->hasCommands([]);
-    }
-}
-```
-
-### Naming Conventions
-
-- **Config files**: `laravilt-{plugin}.php`
-- **Env variables**: `LARAVILT_{PLUGIN}_ENABLED`
-- **Publish tags**: `laravilt-{plugin}-config`, `laravilt-{plugin}-assets`
-- **Asset paths**: `public/vendor/laravilt/{plugin}/`
-
-## API Reference
-
-### PluginManager
-
-Manages plugin registration and lifecycle:
-
-```php
-use Laravilt\Plugins\Contracts\PluginManager;
-
-$manager = app(PluginManager::class);
-
-// Register a plugin
-$manager->register($plugin);
-
-// Boot a plugin
-$manager->boot('plugin-id');
-
-// Get all plugins
-$plugins = $manager->all();
-
-// Get enabled plugins
-$enabled = $manager->enabled();
-```
-
-### Plugin Discovery
-
-Automatically discovers plugins from installed packages:
-
-```php
-use Laravilt\Plugins\Support\PluginDiscovery;
-
-$discovery = new PluginDiscovery($app);
-$plugins = $discovery->discover();
-```
-
-## Testing
-
-Run tests:
-
-```bash
-composer test
-```
-
-Code style:
-
-```bash
-composer format
-```
-
-Static analysis:
-
-```bash
-composer analyse
-```
-
-## Examples
-
-### Creating a Custom Component
-
-```php
-namespace MyVendor\MyPlugin\Components;
-
-use Filament\Forms\Components\Field;
-
-class CustomInput extends Field
-{
-    protected string $view = 'my-plugin::components.custom-input';
-
-    public function withIcon(string $icon): static
-    {
-        $this->icon = $icon;
-        return $this;
-    }
-}
-```
-
-### Creating a Widget
-
-```php
-namespace MyVendor\MyPlugin\Widgets;
-
-use Filament\Widgets\Widget;
-
-class StatsWidget extends Widget
-{
-    protected static string $view = 'my-plugin::widgets.stats-widget';
-
-    public function getStats(): array
-    {
-        return [
-            'Total Users' => 1234,
-            'Active Sessions' => 56,
-        ];
-    }
-}
-```
+The service provider is auto-discovered and will register automatically.
 
 ## Configuration
 
-The plugin system can be configured via `config/laravilt/plugins.php`:
+Publish the configuration:
 
-```php
-return [
-    'discovery' => [
-        'enabled' => true,
-        'cache' => true,
-    ],
-
-    'paths' => [
-        base_path('packages'),
-    ],
-
-    'defaults' => [
-        'vendor' => 'laravilt',
-        'author' => 'Laravilt Team',
-        'email' => 'hello@laravilt.com',
-    ],
-];
+```bash
+php artisan vendor:publish --tag=laravilt-plugins-config
 ```
 
-## Contributing
+## Next Steps
 
-See [CONTRIBUTING.md](../.github/CONTRIBUTING.md) for details.
+- [Getting Started Guide](getting-started.md) - First steps with plugin generation
+- [Architecture Overview](architecture.md) - Understanding the system design
+- [Component Generators](component-generators.md) - Detailed component generation guide
+- [MCP Server](mcp-server.md) - AI agent integration
 
-## License
+## Support
 
-MIT License. See [LICENSE.md](../LICENSE.md) for details.
+- GitHub Issues: github.com/laravilt/plugins
+- Documentation: docs.laravilt.com
+- Discord: discord.laravilt.com

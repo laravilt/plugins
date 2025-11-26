@@ -1,0 +1,29 @@
+/**
+ * {{ plugin_name }} Plugin for Vue.js
+ *
+ * This plugin can be registered in your main Laravilt application.
+ *
+ * Example usage in app.ts:
+ *
+ * import {{ plugin_name }}Plugin from '@/plugins/{{ kebab_name }}';
+ *
+ * app.use({{ plugin_name }}Plugin, {
+ *     // Plugin options
+ * });
+ */
+
+export default {
+    install(app, options = {}) {
+        // Plugin installation logic
+        console.log('{{ plugin_name }} plugin installed', options);
+
+        // Register global components
+        // app.component('{{ plugin_name }}Component', ComponentName);
+
+        // Provide global properties
+        // app.config.globalProperties.${{ kebab_name }} = {};
+
+        // Add global methods
+        // app.mixin({});
+    }
+};

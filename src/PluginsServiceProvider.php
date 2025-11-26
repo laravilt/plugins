@@ -4,6 +4,8 @@ namespace Laravilt\Plugins;
 
 use Illuminate\Support\ServiceProvider;
 use Laravilt\Plugins\Contracts\PluginManager as PluginManagerContract;
+use Laravilt\Plugins\Services\Generation\StubProcessor;
+use Laravilt\Plugins\Services\PluginFeatureFactory;
 use Laravilt\Plugins\Support\PluginManager;
 
 class PluginsServiceProvider extends ServiceProvider
@@ -23,6 +25,22 @@ class PluginsServiceProvider extends ServiceProvider
         });
 
         $this->app->alias(PluginManagerContract::class, 'laravilt.plugins');
+
+        // Register PluginFeatureFactory with features from config
+        $this->app->singleton(PluginFeatureFactory::class, function ($app) {
+            $factory = new PluginFeatureFactory;
+            $stubProcessor = $app->make(StubProcessor::class);
+
+            // Load features from config
+            $featureClasses = config('laravilt-plugins.features', []);
+
+            foreach ($featureClasses as $featureClass) {
+                $feature = new $featureClass($stubProcessor);
+                $factory->register($feature);
+            }
+
+            return $factory;
+        });
     }
 
     /**
@@ -33,11 +51,8 @@ class PluginsServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 Commands\MakePluginCommand::class,
-                Commands\MakePluginModelCommand::class,
-                Commands\MakePluginMigrationCommand::class,
-                Commands\MakePluginResourceCommand::class,
-                Commands\MakePluginWidgetCommand::class,
-                Commands\MakePluginPageCommand::class,
+                Commands\MakeComponentCommand::class,
+                Commands\InstallMcpServerCommand::class,
             ]);
 
             $this->publishes([

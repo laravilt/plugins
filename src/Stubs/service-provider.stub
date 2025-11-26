@@ -1,0 +1,47 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Support\ServiceProvider;
+
+class {{ class }} extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        // Merge config
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/{{ config }}.php',
+            '{{ config }}'
+        );
+
+        // Register any services, bindings, or singletons here
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+{{ views_loading }}
+        // Load translations
+        $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', '{{ id }}');
+
+{{ migrations_loading }}{{ routes_loading }}
+
+        if ($this->app->runningInConsole()) {
+            // Publish config
+            $this->publishes([
+                __DIR__ . '/../config/{{ config }}.php' => config_path('{{ config }}.php'),
+            ], '{{ config }}-config');
+
+{{ assets_publishes }}{{ views_publishes }}{{ migrations_publishes }}
+            // Register commands
+            $this->commands([
+                Commands\{{ install_command_class }}::class,
+            ]);
+        }
+    }
+}

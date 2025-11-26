@@ -1,4 +1,8 @@
-# {{ name }} Plugin for Laravilt
+![{{ plugin_name }}](./arts/screenshot.jpg)
+
+# {{ plugin_name }} Plugin for Laravilt
+
+{{ badges }}
 
 {{ description }}
 
@@ -10,22 +14,8 @@ You can install the plugin via composer:
 composer require {{ vendor }}/{{ package }}
 ```
 
-## Usage
-
-Register the plugin in your Panel provider:
-
-```php
-use {{ namespace }}\{{ class }};
-
-public function panel(Panel $panel): Panel
-{
-    return $panel
-        ->plugins([
-            {{ class }}::make(),
-        ]);
-}
-```
-
+The package will automatically register its service provider which handles all Laravel-specific functionality (views, migrations, config, etc.).
+{{ laravilt_usage }}
 ## Configuration
 
 Publish the config file:

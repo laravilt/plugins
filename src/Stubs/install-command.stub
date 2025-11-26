@@ -1,0 +1,56 @@
+<?php
+
+namespace {{ namespace }}\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
+
+class {{ class }} extends Command
+{
+    /**
+     * The name and signature of the console command.
+     */
+    protected $signature = '{{ command_name }}
+                            {--force : Overwrite existing files}{{ signature_options }}';
+
+    /**
+     * The console command description.
+     */
+    protected $description = 'Install {{ plugin_name }} plugin';
+
+    /**
+     * Execute the console command.
+     */
+    public function handle(): int
+    {
+        $this->info('Installing {{ name }} plugin...');
+        $this->newLine();
+
+        // Publish config
+        $this->publishConfig();
+
+{{ publish_assets_call }}{{ run_migrations_block }}{{ run_seeders_block }}{{ build_assets_block }}
+        $this->newLine();
+        $this->info('✅ {{ name }} plugin installed successfully!');
+        $this->newLine();
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Publish configuration file.
+     */
+    protected function publishConfig(): void
+    {
+        $this->info('Publishing configuration...');
+
+        $params = ['--tag' => '{{ config }}-config'];
+
+        if ($this->option('force')) {
+            $params['--force'] = true;
+        }
+
+        Artisan::call('vendor:publish', $params, $this->output);
+    }
+{{ publish_assets_method }}{{ run_migrations_method }}{{ run_seeders_method }}{{ build_assets_method }}
+}

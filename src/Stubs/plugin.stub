@@ -34,72 +34,27 @@ class {{ class }} extends PluginProvider implements Plugin
     protected static string $author = '{{ author }}';
 
     /**
-     * Register services.
-     */
-    public function register(): void
-    {
-        // Merge config
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/{{ config }}.php',
-            '{{ config }}'
-        );
-
-        // Register any services
-    }
-
-    /**
-     * Boot services.
-     */
-    public function boot(): void
-    {
-        // Load views
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', '{{ id }}');
-
-        // Load translations
-        $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', '{{ id }}');
-
-        // Load migrations
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-
-        if ($this->app->runningInConsole()) {
-            // Publish config
-            $this->publishes([
-                __DIR__ . '/../config/{{ config }}.php' => config_path('{{ config }}.php'),
-            ], '{{ config }}-config');
-
-            // Publish assets
-            $this->publishes([
-                __DIR__ . '/../dist' => public_path('vendor/laravilt/{{ id }}'),
-            ], '{{ assets_tag }}');
-
-            // Publish views
-            $this->publishes([
-                __DIR__ . '/../resources/views' => resource_path('views/vendor/{{ id }}'),
-            ], '{{ id }}-views');
-
-            // Publish migrations
-            $this->publishes([
-                __DIR__ . '/../database/migrations' => database_path('migrations'),
-            ], '{{ id }}-migrations');
-
-            // Register commands
-            // $this->commands([]);
-        }
-    }
-
-    /**
      * Register the plugin with a Filament panel.
+     *
+     * This is where you register resources, pages, widgets, and other
+     * Filament-specific components that should be available in the panel.
      */
     public function register(Panel $panel): void
     {
         // Register resources
-        // $panel->resources([]);
+        // $panel->resources([
+        //     Resources\YourResource::class,
+        // ]);
 
         // Register pages
-        // $panel->pages([]);
+        // $panel->pages([
+        //     Pages\YourPage::class,
+        // ]);
 
         // Register widgets
-        // $panel->widgets([]);
+        // $panel->widgets([
+        //     Widgets\StatsWidget::class,
+        // ]);
 
         // Register render hooks
         // $panel->renderHook(
@@ -109,11 +64,15 @@ class {{ class }} extends PluginProvider implements Plugin
     }
 
     /**
-     * Boot the plugin for a panel (optional).
+     * Boot the plugin for a panel.
+     *
+     * This method is called after the plugin is registered.
+     * Use it for panel-specific initialization logic.
      */
     public function boot(Panel $panel): void
     {
         // Add panel-specific boot logic if needed
+        // For example, register navigation items, custom themes, etc.
     }
 
     /**

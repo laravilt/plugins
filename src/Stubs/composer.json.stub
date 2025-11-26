@@ -1,6 +1,7 @@
 {
     "name": "{{ vendor }}/{{ package }}",
     "description": "{{ description }}",
+    "version": "1.0.0",
     "type": "library",
     "license": "{{ license }}",
     "keywords": [
@@ -47,7 +48,7 @@
     "scripts": {
         "testbench": "vendor/bin/testbench package:discover --ansi",
         "db": "vendor/bin/testbench package:create-sqlite-db && vendor/bin/testbench migrate",
-        "analyse": "vendor/bin/phpstan analyse",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
         "test": "vendor/bin/pest",
         "test-coverage": "vendor/bin/pest --coverage",
         "format": "vendor/bin/pint"
@@ -62,7 +63,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "{{ namespace }}\\{{ class }}"
+                "{{ namespace }}\\{{ service_provider }}"
             ]
         }
     },
