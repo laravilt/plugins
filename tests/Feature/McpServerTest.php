@@ -7,6 +7,7 @@ use Laravilt\Plugins\Mcp\Tools\ListComponentTypesTool;
 use Laravilt\Plugins\Mcp\Tools\ListPluginsTool;
 use Laravilt\Plugins\Mcp\Tools\PluginInfoTool;
 use Laravilt\Plugins\Mcp\Tools\PluginStructureTool;
+use Laravilt\Plugins\Mcp\Tools\SearchDocsTool;
 
 test('mcp server extends laravel mcp server', function () {
     expect(is_subclass_of(LaraviltPluginsServer::class, \Laravel\Mcp\Server::class))
@@ -22,17 +23,18 @@ test('mcp server has correct name and version', function () {
     expect($version)->toBe('1.0.0');
 });
 
-test('mcp server has all 6 tools registered', function () {
+test('mcp server has all 7 tools registered', function () {
     $reflection = new ReflectionClass(LaraviltPluginsServer::class);
     $tools = $reflection->getProperty('tools')->getDefaultValue();
 
-    expect($tools)->toHaveCount(6);
+    expect($tools)->toHaveCount(7);
     expect($tools)->toContain(ListPluginsTool::class);
     expect($tools)->toContain(PluginInfoTool::class);
     expect($tools)->toContain(GeneratePluginTool::class);
     expect($tools)->toContain(GenerateComponentTool::class);
     expect($tools)->toContain(ListComponentTypesTool::class);
     expect($tools)->toContain(PluginStructureTool::class);
+    expect($tools)->toContain(SearchDocsTool::class);
 });
 
 test('all tool classes exist and extend tool base class', function () {
@@ -43,6 +45,7 @@ test('all tool classes exist and extend tool base class', function () {
         PluginStructureTool::class,
         GenerateComponentTool::class,
         GeneratePluginTool::class,
+        SearchDocsTool::class,
     ];
 
     foreach ($tools as $tool) {
@@ -67,6 +70,7 @@ test('all tools have handle method', function () {
         PluginStructureTool::class,
         GenerateComponentTool::class,
         GeneratePluginTool::class,
+        SearchDocsTool::class,
     ];
 
     foreach ($tools as $toolClass) {
@@ -84,6 +88,7 @@ test('all tools have description property', function () {
         PluginStructureTool::class,
         GenerateComponentTool::class,
         GeneratePluginTool::class,
+        SearchDocsTool::class,
     ];
 
     foreach ($tools as $toolClass) {

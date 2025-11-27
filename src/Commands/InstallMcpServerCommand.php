@@ -140,9 +140,10 @@ class InstallMcpServerCommand extends Command
             'command' => 'php',
             'args' => [
                 'artisan',
-                'mcp:serve',
+                'mcp:start',
                 'laravilt-plugins',
             ],
+            'cwd' => base_path(),
         ];
 
         // Write config

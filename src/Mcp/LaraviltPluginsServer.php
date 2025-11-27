@@ -9,6 +9,7 @@ use Laravilt\Plugins\Mcp\Tools\ListComponentTypesTool;
 use Laravilt\Plugins\Mcp\Tools\ListPluginsTool;
 use Laravilt\Plugins\Mcp\Tools\PluginInfoTool;
 use Laravilt\Plugins\Mcp\Tools\PluginStructureTool;
+use Laravilt\Plugins\Mcp\Tools\SearchDocsTool;
 
 class LaraviltPluginsServer extends Server
 {
@@ -33,8 +34,9 @@ class LaraviltPluginsServer extends Server
         - Get detailed information about specific plugins
         - Generate new plugins with various features
         - Generate components within plugins (models, controllers, migrations, etc.)
-        - View plugin directory structures
+        - View plugin directory structures (excluding vendor/node_modules)
         - List available component types
+        - Search plugin documentation to understand features and architecture
 
         All plugins are located in the packages/laravilt directory.
     MARKDOWN;
@@ -51,5 +53,6 @@ class LaraviltPluginsServer extends Server
         GenerateComponentTool::class,
         ListComponentTypesTool::class,
         PluginStructureTool::class,
+        SearchDocsTool::class,
     ];
 }

@@ -28,7 +28,7 @@ This command will:
          "command": "php",
          "args": [
            "artisan",
-           "mcp:serve",
+           "mcp:start",
            "laravilt-plugins"
          ]
        }
