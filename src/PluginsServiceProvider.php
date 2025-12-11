@@ -49,11 +49,17 @@ class PluginsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([
+            $commands = [
                 Commands\MakePluginCommand::class,
                 Commands\MakeComponentCommand::class,
-                Commands\InstallMcpServerCommand::class,
-            ]);
+            ];
+
+            // Only register MCP command if Laravel MCP is installed
+            if (class_exists(\Laravel\Mcp\Server::class)) {
+                $commands[] = Commands\InstallMcpServerCommand::class;
+            }
+
+            $this->commands($commands);
 
             $this->publishes([
                 __DIR__.'/../config/laravilt-plugins.php' => config_path('laravilt-plugins.php'),
