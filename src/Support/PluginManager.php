@@ -147,4 +147,15 @@ class PluginManager implements PluginManagerContract
     {
         return new PluginManifest($this->plugins);
     }
+
+    /**
+     * Register all enabled plugins with a panel.
+     */
+    public function registerWithPanel(\Laravilt\Panel\Panel $panel): void
+    {
+        foreach ($this->enabled() as $plugin) {
+            $plugin->panelRegister($panel);
+            $plugin->panelBoot($panel);
+        }
+    }
 }
