@@ -100,7 +100,7 @@ class PluginDiscovery
 
         foreach ($providers as $provider) {
             if ($this->isPluginProvider($provider)) {
-                return $this->app->make($provider);
+                return new $provider($this->app);
             }
         }
 

@@ -2,9 +2,9 @@
 
 namespace Laravilt\Plugins\Contracts;
 
-use Filament\Panel;
+use Laravilt\Panel\Panel;
 
-interface Plugin extends \Filament\Contracts\Plugin
+interface Plugin
 {
     /**
      * Get the plugin ID.
@@ -34,12 +34,12 @@ interface Plugin extends \Filament\Contracts\Plugin
     /**
      * Register the plugin with a panel.
      */
-    public function register(Panel $panel): void;
+    public function panelRegister(Panel $panel): void;
 
     /**
      * Boot the plugin for a panel.
      */
-    public function boot(Panel $panel): void;
+    public function panelBoot(Panel $panel): void;
 
     /**
      * Check if the plugin is enabled.

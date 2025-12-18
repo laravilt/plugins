@@ -2,7 +2,7 @@
 
 namespace Laravilt\Plugins;
 
-use Filament\Panel;
+use Laravilt\Panel\Panel;
 use Laravilt\Plugins\Concerns\HasAssets;
 use Laravilt\Plugins\Concerns\HasCommands;
 use Laravilt\Plugins\Concerns\HasComponents;
@@ -154,12 +154,12 @@ abstract class BasePlugin extends PackageServiceProvider implements Plugin
     /**
      * Register the plugin with a panel.
      */
-    abstract public function register(Panel $panel): void;
+    abstract public function panelRegister(Panel $panel): void;
 
     /**
      * Boot the plugin for a panel.
      */
-    public function boot(Panel $panel): void
+    public function panelBoot(Panel $panel): void
     {
         // Can be overridden by plugin implementations
     }
@@ -169,7 +169,7 @@ abstract class BasePlugin extends PackageServiceProvider implements Plugin
      */
     public static function make(): static
     {
-        return app(static::class);
+        return new static(app());
     }
 
     /**
@@ -177,7 +177,7 @@ abstract class BasePlugin extends PackageServiceProvider implements Plugin
      */
     public static function get(): static
     {
-        return filament(static::$id ?? static::$name);
+        return app('laravilt.plugins')->get(static::$id ?? static::$name);
     }
 
     /**
