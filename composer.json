@@ -2,7 +2,7 @@
     "name": "laravilt/plugins",
     "description": "Complete plugin system with generator, management, and FilamentPHP compatibility for Laravilt",
     "type": "library",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "keywords": [
         "laravilt",
         "laravel",

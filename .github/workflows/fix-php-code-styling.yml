@@ -1,6 +1,11 @@
 name: Fix PHP Code Styling
 
-on: [push]
+on:
+  push:
+    branches: [ "master", "main" ]
+
+permissions:
+  contents: write
 
 jobs:
   php-code-styling:

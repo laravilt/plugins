@@ -2,34 +2,20 @@
 
 namespace Laravilt\Plugins;
 
-use Filament\Panel;
-use Illuminate\Support\ServiceProvider;
-use Laravilt\Plugins\Concerns\HasAssets;
-use Laravilt\Plugins\Concerns\HasCommands;
-use Laravilt\Plugins\Concerns\HasComponents;
-use Laravilt\Plugins\Concerns\HasMigrations;
-use Laravilt\Plugins\Concerns\HasTranslations;
-use Laravilt\Plugins\Concerns\HasViews;
+use Laravilt\Panel\Panel;
 use Laravilt\Plugins\Contracts\Plugin;
 
-abstract class PluginProvider extends ServiceProvider implements Plugin
+abstract class PluginProvider implements Plugin
 {
-    use HasAssets;
-    use HasCommands;
-    use HasComponents;
-    use HasMigrations;
-    use HasTranslations;
-    use HasViews;
-
     /**
-     * The plugin ID.
+     * The plugin ID (must be unique).
      */
     protected static string $id;
 
     /**
      * The plugin name.
      */
-    protected static string $name;
+    protected static string $name = '';
 
     /**
      * The plugin version.
@@ -45,13 +31,6 @@ abstract class PluginProvider extends ServiceProvider implements Plugin
      * The plugin author.
      */
     protected static string $author = '';
-
-    /**
-     * Plugin dependencies.
-     *
-     * @var array<string>
-     */
-    protected static array $dependencies = [];
 
     /**
      * Whether the plugin is enabled.
@@ -96,30 +75,6 @@ abstract class PluginProvider extends ServiceProvider implements Plugin
     public function getAuthor(): string
     {
         return static::$author;
-    }
-
-    /**
-     * Get plugin dependencies.
-     */
-    public function getDependencies(): array
-    {
-        return static::$dependencies;
-    }
-
-    /**
-     * Check if dependencies are satisfied.
-     */
-    public function dependenciesSatisfied(): bool
-    {
-        $manager = app('laravilt.plugins');
-
-        foreach ($this->getDependencies() as $dependency) {
-            if (! $manager->has($dependency)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**
@@ -168,17 +123,6 @@ abstract class PluginProvider extends ServiceProvider implements Plugin
      */
     public static function make(): static
     {
-        return app(static::class);
-    }
-
-    /**
-     * Get the default instance of the plugin.
-     */
-    public static function get(): static
-    {
-        /** @var \Filament\FilamentManager $filament */
-        $filament = app('filament');
-
-        return $filament->getPlugin(static::$id ?? static::$name);
+        return new static;
     }
 }

@@ -24,6 +24,7 @@ class MakeComponentCommand extends Command
     protected $description = 'Generate Laravel components within a Laravilt plugin';
 
     protected array $componentTypes = [
+        'resource' => 'Panel Resource',
         'migration' => 'Database Migration',
         'model' => 'Eloquent Model',
         'controller' => 'Controller',
@@ -459,6 +460,7 @@ PHP;
     protected function getPlaceholder(string $type): string
     {
         return match ($type) {
+            'resource' => 'e.g., User (singular)',
             'migration' => 'e.g., CreatePostsTable',
             'model' => 'e.g., Post',
             'controller' => 'e.g., PostController',
@@ -474,6 +476,334 @@ PHP;
             'route' => 'e.g., posts',
             default => 'e.g., Example',
         };
+    }
+
+    protected function generateResource(string $pluginPath, string $namespace, string $name): int
+    {
+        $this->info('Creating resource...');
+
+        $singular = Str::singular($name);
+        $plural = Str::plural($name);
+        $studlySingular = Str::studly($singular);
+        $studlyPlural = Str::studly($plural);
+
+        // Create directory structure
+        $resourcePath = $pluginPath.'/src/Resources/'.$studlyPlural;
+        $schemasPath = $resourcePath.'/Schemas';
+        $tablesPath = $resourcePath.'/Tables';
+        $pagesPath = $resourcePath.'/Pages';
+
+        foreach ([$resourcePath, $schemasPath, $tablesPath, $pagesPath] as $path) {
+            if (! is_dir($path)) {
+                mkdir($path, 0755, true);
+            }
+        }
+
+        // Generate resource files
+        $this->generateResourceFile($resourcePath, $namespace, $studlySingular, $studlyPlural);
+        $this->generateFormSchema($schemasPath, $namespace, $studlySingular, $studlyPlural);
+        $this->generateInfolistSchema($schemasPath, $namespace, $studlySingular, $studlyPlural);
+        $this->generateTableFile($tablesPath, $namespace, $studlySingular, $studlyPlural);
+        $this->generatePages($pagesPath, $namespace, $studlySingular, $studlyPlural);
+
+        $this->info('✅ Resource created successfully!');
+        $this->line("Created: src/Resources/{$studlyPlural}/");
+        $this->line("  - {$studlySingular}Resource.php");
+        $this->line("  - Schemas/{$studlySingular}Form.php");
+        $this->line("  - Schemas/{$studlySingular}Infolist.php");
+        $this->line("  - Tables/{$studlyPlural}Table.php");
+        $this->line("  - Pages/List{$studlyPlural}.php");
+        $this->line("  - Pages/Create{$studlySingular}.php");
+        $this->line("  - Pages/View{$studlySingular}.php");
+        $this->line("  - Pages/Edit{$studlySingular}.php");
+
+        return self::SUCCESS;
+    }
+
+    protected function generateResourceFile(string $resourcePath, string $namespace, string $singular, string $plural): void
+    {
+        $content = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$plural};
+
+use Laravilt\Panel\Resources\Resource;
+use Laravilt\Schemas\Schema;
+use Laravilt\Tables\Table;
+use {$namespace}\\Resources\\{$plural}\\Pages\\Create{$singular};
+use {$namespace}\\Resources\\{$plural}\\Pages\\Edit{$singular};
+use {$namespace}\\Resources\\{$plural}\\Pages\\List{$plural};
+use {$namespace}\\Resources\\{$plural}\\Pages\\View{$singular};
+use {$namespace}\\Resources\\{$plural}\\Schemas\\{$singular}Form;
+use {$namespace}\\Resources\\{$plural}\\Schemas\\{$singular}Infolist;
+use {$namespace}\\Resources\\{$plural}\\Tables\\{$plural}Table;
+
+class {$singular}Resource extends Resource
+{
+    protected static ?string \$recordTitleAttribute = 'name';
+
+    protected static ?string \$navigationIcon = 'layers';
+
+    public static function getModel(): string
+    {
+        return \\App\\Models\\{$singular}::class;
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return null;
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        \$count = static::getModel()::count();
+
+        return \$count > 0 ? (string) \$count : null;
+    }
+
+    public static function form(Schema \$schema): Schema
+    {
+        return {$singular}Form::make(\$schema);
+    }
+
+    public static function infolist(Schema \$schema): Schema
+    {
+        return {$singular}Infolist::make(\$schema);
+    }
+
+    public static function table(Table \$table): Table
+    {
+        return {$plural}Table::make(\$table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => List{$plural}::route('/'),
+            'create' => Create{$singular}::route('/create'),
+            'view' => View{$singular}::route('/{record}'),
+            'edit' => Edit{$singular}::route('/{record}/edit'),
+        ];
+    }
+}
+
+PHP;
+        file_put_contents($resourcePath."/{$singular}Resource.php", $content);
+    }
+
+    protected function generateFormSchema(string $schemasPath, string $namespace, string $singular, string $plural): void
+    {
+        $content = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$plural}\\Schemas;
+
+use Laravilt\Forms\Components\TextInput;
+use Laravilt\Schemas\Components\Section;
+use Laravilt\Schemas\Schema;
+
+class {$singular}Form
+{
+    public static function make(Schema \$schema): Schema
+    {
+        return \$schema
+            ->schema([
+                Section::make('{$singular} Information')
+                    ->icon('information-circle')
+                    ->description('Fill in the {$singular} details')
+                    ->schema([
+                        TextInput::make('name')
+                            ->label('Name')
+                            ->required()
+                            ->maxLength(255),
+                    ])->columns(2),
+            ])->columns(1);
+    }
+}
+
+PHP;
+        file_put_contents($schemasPath."/{$singular}Form.php", $content);
+    }
+
+    protected function generateInfolistSchema(string $schemasPath, string $namespace, string $singular, string $plural): void
+    {
+        $content = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$plural}\\Schemas;
+
+use Laravilt\Infolists\Entries\TextEntry;
+use Laravilt\Schemas\Components\Section;
+use Laravilt\Schemas\Schema;
+
+class {$singular}Infolist
+{
+    public static function make(Schema \$schema): Schema
+    {
+        return \$schema
+            ->schema([
+                Section::make('{$singular} Information')
+                    ->icon('information-circle')
+                    ->schema([
+                        TextEntry::make('name')
+                            ->label('Name'),
+
+                        TextEntry::make('created_at')
+                            ->label('Created At')
+                            ->dateTime(),
+
+                        TextEntry::make('updated_at')
+                            ->label('Updated At')
+                            ->dateTime(),
+                    ])->columns(2),
+            ]);
+    }
+}
+
+PHP;
+        file_put_contents($schemasPath."/{$singular}Infolist.php", $content);
+    }
+
+    protected function generateTableFile(string $tablesPath, string $namespace, string $singular, string $plural): void
+    {
+        $content = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$plural}\\Tables;
+
+use Laravilt\Actions\DeleteAction;
+use Laravilt\Actions\DeleteBulkAction;
+use Laravilt\Actions\EditAction;
+use Laravilt\Actions\ViewAction;
+use Laravilt\Tables\Columns\TextColumn;
+use Laravilt\Tables\Enums\PaginationMode;
+use Laravilt\Tables\Table;
+
+class {$plural}Table
+{
+    public static function make(Table \$table): Table
+    {
+        return \$table
+            ->extremePaginationLinks()
+            ->paginationPageOptions([10, 25, 50, 100])
+            ->deferLoading()
+            ->paginationMode(PaginationMode::Simple)
+            ->defaultSort('created_at', 'desc')
+            ->columns([
+                TextColumn::make('name')
+                    ->label('Name')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('updated_at')
+                    ->label('Updated')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                //
+            ])
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
+            ])
+            ->toolbarActions([
+                DeleteBulkAction::make(),
+            ]);
+    }
+}
+
+PHP;
+        file_put_contents($tablesPath."/{$plural}Table.php", $content);
+    }
+
+    protected function generatePages(string $pagesPath, string $namespace, string $singular, string $plural): void
+    {
+        // ListRecords page
+        $listContent = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$plural}\\Pages;
+
+use Laravilt\Panel\Pages\ListRecords;
+use {$namespace}\\Resources\\{$plural}\\{$singular}Resource;
+
+class List{$plural} extends ListRecords
+{
+    protected static ?string \$resource = {$singular}Resource::class;
+}
+
+PHP;
+        file_put_contents($pagesPath."/List{$plural}.php", $listContent);
+
+        // CreateRecord page
+        $createContent = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$plural}\\Pages;
+
+use Laravilt\Panel\Pages\CreateRecord;
+use {$namespace}\\Resources\\{$plural}\\{$singular}Resource;
+
+class Create{$singular} extends CreateRecord
+{
+    protected static ?string \$resource = {$singular}Resource::class;
+}
+
+PHP;
+        file_put_contents($pagesPath."/Create{$singular}.php", $createContent);
+
+        // ViewRecord page
+        $viewContent = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$plural}\\Pages;
+
+use Laravilt\Panel\Pages\ViewRecord;
+use {$namespace}\\Resources\\{$plural}\\{$singular}Resource;
+
+class View{$singular} extends ViewRecord
+{
+    protected static ?string \$resource = {$singular}Resource::class;
+}
+
+PHP;
+        file_put_contents($pagesPath."/View{$singular}.php", $viewContent);
+
+        // EditRecord page
+        $editContent = <<<PHP
+<?php
+
+namespace {$namespace}\\Resources\\{$plural}\\Pages;
+
+use Laravilt\Panel\Pages\EditRecord;
+use {$namespace}\\Resources\\{$plural}\\{$singular}Resource;
+
+class Edit{$singular} extends EditRecord
+{
+    protected static ?string \$resource = {$singular}Resource::class;
+}
+
+PHP;
+        file_put_contents($pagesPath."/Edit{$singular}.php", $editContent);
     }
 
     protected function getMigrationStub(): string
