@@ -3,6 +3,7 @@
 namespace Laravilt\Plugins\Mcp;
 
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Tool;
 use Laravilt\Plugins\Mcp\Tools\GenerateComponentTool;
 use Laravilt\Plugins\Mcp\Tools\GeneratePluginTool;
 use Laravilt\Plugins\Mcp\Tools\ListComponentTypesTool;
@@ -44,7 +45,7 @@ class LaraviltPluginsServer extends Server
     /**
      * The tools registered with this MCP server.
      *
-     * @var array<int, class-string<\Laravel\Mcp\Server\Tool>>
+     * @var array<int, class-string<Tool>>
      */
     protected array $tools = [
         ListPluginsTool::class,

@@ -3,6 +3,7 @@
 namespace Laravilt\Plugins;
 
 use Illuminate\Support\ServiceProvider;
+use Laravel\Mcp\Server;
 use Laravilt\Plugins\Contracts\PluginManager as PluginManagerContract;
 use Laravilt\Plugins\Services\Generation\StubProcessor;
 use Laravilt\Plugins\Services\PluginFeatureFactory;
@@ -55,7 +56,7 @@ class PluginsServiceProvider extends ServiceProvider
             ];
 
             // Only register MCP command if Laravel MCP is installed
-            if (class_exists(\Laravel\Mcp\Server::class)) {
+            if (class_exists(Server::class)) {
                 $commands[] = Commands\InstallMcpServerCommand::class;
             }
 

@@ -1,5 +1,7 @@
 <?php
 
+use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Tool;
 use Laravilt\Plugins\Mcp\LaraviltPluginsServer;
 use Laravilt\Plugins\Mcp\Tools\GenerateComponentTool;
 use Laravilt\Plugins\Mcp\Tools\GeneratePluginTool;
@@ -10,7 +12,7 @@ use Laravilt\Plugins\Mcp\Tools\PluginStructureTool;
 use Laravilt\Plugins\Mcp\Tools\SearchDocsTool;
 
 test('mcp server extends laravel mcp server', function () {
-    expect(is_subclass_of(LaraviltPluginsServer::class, \Laravel\Mcp\Server::class))
+    expect(is_subclass_of(LaraviltPluginsServer::class, Server::class))
         ->toBeTrue();
 });
 
@@ -50,7 +52,7 @@ test('all tool classes exist and extend tool base class', function () {
 
     foreach ($tools as $tool) {
         expect(class_exists($tool))->toBeTrue("Tool class {$tool} should exist");
-        expect(is_subclass_of($tool, \Laravel\Mcp\Server\Tool::class))
+        expect(is_subclass_of($tool, Tool::class))
             ->toBeTrue("Tool {$tool} should extend Laravel MCP Tool class");
     }
 });

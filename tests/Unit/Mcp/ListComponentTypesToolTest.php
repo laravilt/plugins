@@ -1,7 +1,9 @@
 <?php
 
+use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Tool;
 use Laravilt\Plugins\Mcp\Tools\ListComponentTypesTool;
 
 beforeEach(function () {
@@ -9,7 +11,7 @@ beforeEach(function () {
 });
 
 test('tool extends base tool class', function () {
-    expect($this->tool)->toBeInstanceOf(\Laravel\Mcp\Server\Tool::class);
+    expect($this->tool)->toBeInstanceOf(Tool::class);
 });
 
 test('has description property', function () {
@@ -39,7 +41,7 @@ test('handle method returns response', function () {
 });
 
 test('schema returns empty array', function () {
-    $schema = Mockery::mock(\Illuminate\JsonSchema\JsonSchema::class);
+    $schema = Mockery::mock(JsonSchema::class);
     $result = $this->tool->schema($schema);
 
     expect($result)->toBe([]);

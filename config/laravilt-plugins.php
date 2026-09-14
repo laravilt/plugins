@@ -1,5 +1,25 @@
 <?php
 
+use Laravilt\Plugins\Features\ArtsFeature;
+use Laravilt\Plugins\Features\ComposerJsonFeature;
+use Laravilt\Plugins\Features\ConfigFeature;
+use Laravilt\Plugins\Features\CssFeature;
+use Laravilt\Plugins\Features\DocumentationFeature;
+use Laravilt\Plugins\Features\GitHubFeature;
+use Laravilt\Plugins\Features\GitignoreFeature;
+use Laravilt\Plugins\Features\InstallCommandFeature;
+use Laravilt\Plugins\Features\JsFeature;
+use Laravilt\Plugins\Features\LanguageFeature;
+use Laravilt\Plugins\Features\MigrationsFeature;
+use Laravilt\Plugins\Features\PintFeature;
+use Laravilt\Plugins\Features\PluginClassFeature;
+use Laravilt\Plugins\Features\ReadmeFeature;
+use Laravilt\Plugins\Features\RoutesFeature;
+use Laravilt\Plugins\Features\ServiceProviderFeature;
+use Laravilt\Plugins\Features\TestbenchFeature;
+use Laravilt\Plugins\Features\TestingFeature;
+use Laravilt\Plugins\Features\ViewsFeature;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -57,32 +77,32 @@ return [
 
     'features' => [
         // Core Files
-        \Laravilt\Plugins\Features\ComposerJsonFeature::class,
-        \Laravilt\Plugins\Features\GitignoreFeature::class,
-        \Laravilt\Plugins\Features\ServiceProviderFeature::class,
-        \Laravilt\Plugins\Features\PluginClassFeature::class,
-        \Laravilt\Plugins\Features\InstallCommandFeature::class,
-        \Laravilt\Plugins\Features\ConfigFeature::class,
+        ComposerJsonFeature::class,
+        GitignoreFeature::class,
+        ServiceProviderFeature::class,
+        PluginClassFeature::class,
+        InstallCommandFeature::class,
+        ConfigFeature::class,
 
         // Structure Files
-        \Laravilt\Plugins\Features\MigrationsFeature::class,
-        \Laravilt\Plugins\Features\RoutesFeature::class,
-        \Laravilt\Plugins\Features\ViewsFeature::class,
-        \Laravilt\Plugins\Features\LanguageFeature::class,
+        MigrationsFeature::class,
+        RoutesFeature::class,
+        ViewsFeature::class,
+        LanguageFeature::class,
 
         // Asset Files
-        \Laravilt\Plugins\Features\CssFeature::class,
-        \Laravilt\Plugins\Features\JsFeature::class,
-        \Laravilt\Plugins\Features\ArtsFeature::class,
+        CssFeature::class,
+        JsFeature::class,
+        ArtsFeature::class,
 
         // Testing Files
-        \Laravilt\Plugins\Features\TestingFeature::class,
-        \Laravilt\Plugins\Features\TestbenchFeature::class,
-        \Laravilt\Plugins\Features\PintFeature::class,
+        TestingFeature::class,
+        TestbenchFeature::class,
+        PintFeature::class,
 
         // Documentation Files
-        \Laravilt\Plugins\Features\ReadmeFeature::class,
-        \Laravilt\Plugins\Features\GitHubFeature::class,
-        \Laravilt\Plugins\Features\DocumentationFeature::class,
+        ReadmeFeature::class,
+        GitHubFeature::class,
+        DocumentationFeature::class,
     ],
 ];
