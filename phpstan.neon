@@ -5,5 +5,4 @@ parameters:
     tmpDir: build/phpstan
     excludePaths:
         - src/Contracts/Plugin.php
-        - src/BasePlugin.php
         - src/PluginProvider.php
