@@ -1,0 +1,34 @@
+{
+    "name": "{{ package }}",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "types:check": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@tailwindcss/vite": "^4.1.11",
+        "@types/node": "^22.13.5",
+        "@types/react": "^19.2.0",
+        "@types/react-dom": "^19.2.0",
+        "@vitejs/plugin-react": "^6.1.1",
+        "typescript": "^5.7.2",
+        "vite": "^8.0.0"
+    },
+    "dependencies": {
+        "laravel-vite-plugin": "^3.0.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "tailwindcss": "^4.1.1"
+    },
+    "optionalDependencies": {
+        "@rollup/rollup-linux-x64-gnu": "4.9.5",
+        "@rollup/rollup-win32-x64-msvc": "4.9.5",
+        "@tailwindcss/oxide-linux-x64-gnu": "^4.0.1",
+        "@tailwindcss/oxide-win32-x64-msvc": "^4.0.1",
+        "lightningcss-linux-x64-gnu": "^1.29.1",
+        "lightningcss-win32-x64-msvc": "^1.29.1"
+    }
+}
