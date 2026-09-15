@@ -26,14 +26,17 @@ class PluginManifest
     public function toArray(): array
     {
         return $this->plugins->map(function (Plugin $plugin) {
+            // Only getId()/isEnabled() are on the Plugin contract; the rest come from PluginProvider
+            $call = fn (string $method, mixed $default) => method_exists($plugin, $method) ? $plugin->{$method}() : $default;
+
             return [
                 'id' => $plugin->getId(),
-                'name' => $plugin->getName(),
-                'version' => $plugin->getVersion(),
-                'description' => $plugin->getDescription(),
-                'author' => $plugin->getAuthor(),
+                'name' => $call('getName', ''),
+                'version' => $call('getVersion', ''),
+                'description' => $call('getDescription', ''),
+                'author' => $call('getAuthor', ''),
                 'enabled' => $plugin->isEnabled(),
-                'dependencies' => $plugin->getDependencies(),
+                'dependencies' => $call('getDependencies', []),
             ];
         })->all();
     }

@@ -43,9 +43,9 @@ class PluginManager implements PluginManagerContract
             throw new \RuntimeException("Plugin '{$id}' is already registered.");
         }
 
-        // Check dependencies
-        if (! $plugin->dependenciesSatisfied()) {
-            $dependencies = implode(', ', $plugin->getDependencies());
+        // Check dependencies (not part of the Plugin contract, so only when the plugin declares them)
+        if (method_exists($plugin, 'dependenciesSatisfied') && ! $plugin->dependenciesSatisfied()) {
+            $dependencies = implode(', ', $this->dependenciesOf($plugin));
             throw new \RuntimeException(
                 "Plugin '{$id}' dependencies not satisfied: {$dependencies}"
             );
@@ -70,11 +70,19 @@ class PluginManager implements PluginManagerContract
         }
 
         // Boot dependencies first
-        foreach ($plugin->getDependencies() as $dependency) {
+        foreach ($this->dependenciesOf($plugin) as $dependency) {
             $this->boot($dependency);
         }
 
         $this->booted->push($id);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function dependenciesOf(Plugin $plugin): array
+    {
+        return method_exists($plugin, 'getDependencies') ? $plugin->getDependencies() : [];
     }
 
     /**
