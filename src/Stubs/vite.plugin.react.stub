@@ -1,0 +1,32 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export default function {{ plugin_name }}Plugin() {
+    // package.json sets "type": "module", so __dirname is not defined here
+    const pluginPath = dirname(fileURLToPath(import.meta.url));
+
+    return {
+        name: '{{ kebab_name }}-plugin',
+        config: () => ({
+            build: {
+                rollupOptions: {
+                    input: {
+                        '{{ kebab_name }}': resolve(pluginPath, 'resources/react/app.ts'),
+                    },
+                    output: {
+                        entryFileNames: 'js/[name].js',
+                        chunkFileNames: 'js/[name].js',
+                        assetFileNames: (assetInfo) => {
+                            if (assetInfo.name.endsWith('.css')) {
+                                return 'css/[name][extname]';
+                            }
+                            return 'assets/[name][extname]';
+                        },
+                    },
+                },
+                outDir: resolve(pluginPath, 'dist'),
+                emptyOutDir: true,
+            },
+        }),
+    };
+}

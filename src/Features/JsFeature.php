@@ -2,6 +2,8 @@
 
 namespace Laravilt\Plugins\Features;
 
+use Laravilt\Support\Frontend;
+
 /**
  * Generates JavaScript assets for the plugin.
  *
@@ -27,7 +29,7 @@ class JsFeature extends AbstractFeature
     public function getDirectories(array $config): array
     {
         return $this->shouldGenerate($config)
-            ? ['resources/js', 'dist']
+            ? [$this->usesReact($config) ? 'resources/react' : 'resources/js', 'dist']
             : [];
     }
 
@@ -39,15 +41,27 @@ class JsFeature extends AbstractFeature
         // Generate Vite plugin configuration
         $this->generateViteConfig($config);
 
-        // Generate JS file as Vue.js plugin
+        // Generate the plugin entry (Vue.js plugin or React registration module)
         $this->generateJsFile($config);
+    }
+
+    /**
+     * Whether the plugin targets React (the `frontend` option, else the application's stack).
+     */
+    protected function usesReact(array $config): bool
+    {
+        $stack = $config['frontend'] ?? (class_exists(Frontend::class)
+            ? Frontend::stack()
+            : 'vue');
+
+        return $stack === 'react';
     }
 
     protected function generatePackageJson(array $config): void
     {
         $this->processor->generateFile(
             $config['base_path'].'/package.json',
-            'package.json',
+            $this->usesReact($config) ? 'package.react.json' : 'package.json',
             [
                 'package_name' => $config['kebab_name'],
                 'description' => $config['plugin_description'] ?? "{$config['studly_name']} plugin for Laravilt",
@@ -59,7 +73,7 @@ class JsFeature extends AbstractFeature
     {
         $this->processor->generateFile(
             $config['base_path'].'/vite.plugin.js',
-            'vite.plugin',
+            $this->usesReact($config) ? 'vite.plugin.react' : 'vite.plugin',
             [
                 'plugin_name' => $config['studly_name'],
                 'kebab_name' => $config['kebab_name'],
@@ -69,9 +83,11 @@ class JsFeature extends AbstractFeature
 
     protected function generateJsFile(array $config): void
     {
+        $react = $this->usesReact($config);
+
         $this->processor->generateFile(
-            $config['base_path'].'/resources/js/app.js',
-            'js/app',
+            $config['base_path'].($react ? '/resources/react/app.ts' : '/resources/js/app.js'),
+            $react ? 'js/app.react' : 'js/app',
             [
                 'plugin_name' => $config['studly_name'],
                 'kebab_name' => $config['kebab_name'],

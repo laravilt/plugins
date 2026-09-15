@@ -1,0 +1,24 @@
+/**
+ * {{ plugin_name }} Plugin for React
+ *
+ * Register it in your application's resources/js/app.tsx:
+ *
+ * import {{ plugin_name }}Plugin from '@/plugins/{{ kebab_name }}';
+ *
+ * {{ plugin_name }}Plugin.register({
+ *     // Plugin options
+ * });
+ *
+ * Components the PHP side renders by name are registered with the Laravilt registry:
+ *
+ * import { registerComponents } from '@laravilt/support/composables/registry';
+ *
+ * registerComponents({ 'laravilt-{{ kebab_name }}': {{ plugin_name }}Component });
+ */
+
+export default {
+    register(options: Record<string, unknown> = {}) {
+        // Plugin registration logic
+        console.log('{{ plugin_name }} plugin registered', options);
+    },
+};
