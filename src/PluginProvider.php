@@ -106,6 +106,24 @@ abstract class PluginProvider implements Plugin
     }
 
     /**
+     * Get the IDs of the plugins this plugin depends on.
+     *
+     * @return array<int, string>
+     */
+    public function getDependencies(): array
+    {
+        return [];
+    }
+
+    /**
+     * Whether this plugin's dependencies are available.
+     */
+    public function dependenciesSatisfied(): bool
+    {
+        return true;
+    }
+
+    /**
      * Register the plugin with a panel.
      */
     abstract public function register(Panel $panel): void;

@@ -82,6 +82,7 @@ class InstallCommandFeature extends AbstractFeature
                 'class' => 'Install'.$config['studly_name'].'Command',
                 'command_name' => $config['kebab_name'].':install',
                 'plugin_name' => $config['studly_name'],
+                'config' => $config['config_name'] ?? 'laravilt-'.$config['kebab_name'],
                 'signature_options' => ! empty($signatureOptions) ? "\n                            ".implode("\n                            ", $signatureOptions) : '',
                 'publish_assets_call' => in_array('$this->publishAssets();', $calls) ? '$this->publishAssets();' : '',
                 'run_migrations_block' => $this->findInArray($calls, 'runMigrations'),

@@ -45,9 +45,15 @@ it('generates the Vue entry when the frontend is vue', function () {
     $this->feature->generate($config);
 
     $package = json_decode($this->files->get($this->basePath.'/package.json'), true);
+    $vite = $this->files->get($this->basePath.'/vite.plugin.js');
 
     expect($this->feature->getDirectories($config))->toBe(['resources/js', 'dist'])
         ->and($this->files->exists($this->basePath.'/resources/js/app.js'))->toBeTrue()
         ->and($package['name'])->toBe('acme')
-        ->and($package['dependencies'])->toHaveKey('vue');
+        ->and($package['type'])->toBe('module')
+        ->and($package['dependencies'])->toHaveKey('vue')
+        // "type": "module" means __dirname is undefined when Vite loads the plugin
+        ->and($vite)->toContain("resolve(pluginPath, 'resources/js/app.js')")
+        ->and($vite)->toContain('fileURLToPath(import.meta.url)')
+        ->and($vite)->not->toContain('__dirname)');
 });

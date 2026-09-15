@@ -62,7 +62,7 @@ class MakePluginCommand extends Command
         $this->info("Creating plugin: {$name}...");
 
         // Gather configuration options
-        $options = $this->gatherConfigurationOptions();
+        $options = $this->gatherConfigurationOptions($name);
 
         // Generate the plugin using the service
         $config = $this->generator->prepareConfig(
@@ -121,16 +121,15 @@ class MakePluginCommand extends Command
         );
     }
 
-    protected function gatherConfigurationOptions(): array
+    protected function gatherConfigurationOptions(string $pluginName): array
     {
         if ($this->option('no-interaction')) {
-            return $this->getDefaultOptions();
+            return $this->getDefaultOptions($pluginName);
         }
 
         $options = [];
 
-        // Get plugin name for auto-filling
-        $pluginName = $this->argument('name');
+        // Use the resolved name (the argument is null when the name was entered at the prompt)
         $humanReadableName = trim(ucwords(str_replace(['-', '_'], ' ', Str::kebab($pluginName))));
         $defaultTitle = $humanReadableName;
         $defaultDescription = trim($humanReadableName.' plugin for Laravilt');
@@ -147,7 +146,7 @@ class MakePluginCommand extends Command
                 'web_routes' => 'Web routes',
                 'api_routes' => 'API routes',
                 'css' => 'CSS assets (Tailwind v4)',
-                'js' => 'JavaScript assets (Vue.js plugin + Vite)',
+                'js' => 'JavaScript assets (Vue or React plugin + Vite, following the app stack)',
                 'arts' => 'Arts folder with cover photo (screenshot.jpg)',
                 'languages' => 'Language files (i18n)',
                 'github' => 'GitHub workflows and issue templates',
@@ -242,10 +241,9 @@ class MakePluginCommand extends Command
         return $options;
     }
 
-    protected function getDefaultOptions(): array
+    protected function getDefaultOptions(string $pluginName): array
     {
         // Auto-fill title and description from plugin name
-        $pluginName = $this->argument('name');
         $humanReadableName = trim(ucwords(str_replace(['-', '_'], ' ', Str::kebab($pluginName))));
 
         return [

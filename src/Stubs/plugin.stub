@@ -2,11 +2,10 @@
 
 namespace {{ namespace }};
 
-use Filament\Contracts\Plugin;
-use Filament\Panel;
+use Laravilt\Panel\Panel;
 use Laravilt\Plugins\PluginProvider;
 
-class {{ class }} extends PluginProvider implements Plugin
+class {{ class }} extends PluginProvider
 {
     /**
      * The plugin ID (must be unique).
@@ -34,10 +33,10 @@ class {{ class }} extends PluginProvider implements Plugin
     protected static string $author = '{{ author }}';
 
     /**
-     * Register the plugin with a Filament panel.
+     * Register the plugin with a Laravilt panel.
      *
      * This is where you register resources, pages, widgets, and other
-     * Filament-specific components that should be available in the panel.
+     * panel components that should be available in the panel.
      */
     public function register(Panel $panel): void
     {
