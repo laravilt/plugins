@@ -1,7 +1,9 @@
-import { resolve } from 'path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export default function {{ plugin_name }}Plugin() {
-    const pluginPath = resolve(__dirname);
+    // package.json sets "type": "module", so __dirname is not defined here
+    const pluginPath = dirname(fileURLToPath(import.meta.url));
 
     return {
         name: '{{ kebab_name }}-plugin',
